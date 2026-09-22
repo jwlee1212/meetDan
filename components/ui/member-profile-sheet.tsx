@@ -1,11 +1,11 @@
 // 파일: components/ui/member-profile-sheet.tsx
 import { Image } from "expo-image";
-import { useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { Badge } from "@/components/ui/badge";
 import { BottomSheet, SheetCancel } from "@/components/ui/bottom-sheet";
 import { getAvatarSource } from "@/constants/avatars";
+import { useLastPresent } from "@/hooks/use-last-present";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import type { TeamMember } from "@/store/useStore";
 
@@ -26,9 +26,7 @@ export function MemberProfileSheet({
   member: TeamMember | null;
   onClose: () => void;
 }) {
-  const last = useRef<TeamMember | null>(null);
-  if (member) last.current = member;
-  const shown = member ?? last.current;
+  const shown = useLastPresent(member);
 
   return (
     <BottomSheet visible={!!member} onClose={onClose}>

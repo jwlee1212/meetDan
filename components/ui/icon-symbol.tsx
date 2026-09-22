@@ -5,7 +5,12 @@ import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+// SDK 57 의 expo-symbols 는 name 에 플랫폼별 객체({ ios, android, web })도 받는다.
+// 객체는 Record 의 키가 될 수 없으므로 문자열 형태의 심볼 이름만 골라 쓴다.
+type IconMapping = Record<
+  Extract<SymbolViewProps['name'], string>,
+  ComponentProps<typeof MaterialIcons>['name']
+>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**

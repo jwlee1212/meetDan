@@ -19,7 +19,7 @@ import { EmptyHint, EmptyState } from "@/components/ui/empty-state";
 import { PressScale } from "@/components/ui/press-scale";
 import { Divider, Screen, ScreenHeader } from "@/components/ui/screen";
 import { Segmented } from "@/components/ui/segmented";
-import { Palette, Radius, Shadow, Spacing, Typo } from "@/constants/theme";
+import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import { dDayLabel, formatPlanSummary, isPastPlan } from "@/utils/plan";
 import { Match, MatchRequest, useStore } from "../../store/useStore";
 

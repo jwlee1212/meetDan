@@ -123,7 +123,7 @@ export default function RootLayout() {
     } else if (!session && !inAuthGroup) {
       router.replace("/login");
     }
-  }, [isReady, session, segments, navigationState?.key]);
+  }, [isReady, session, segments, navigationState?.key, router]);
 
   // 5️⃣ 알림 — 안 읽은 개수를 한 번 세고, 그 뒤로는 Realtime 이 밀어 넣는다.
   //

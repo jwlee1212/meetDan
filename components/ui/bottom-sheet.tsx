@@ -122,7 +122,7 @@ export function SheetCancel({ onPress }: { onPress: () => void }) {
 const styles = StyleSheet.create({
   fill: { flex: 1, justifyContent: "flex-end" },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(11,18,32,0.5)",
   },
   sheet: {

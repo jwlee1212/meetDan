@@ -66,14 +66,14 @@ interface SplashOverlayProps {
 export function SplashOverlay({ isAppReady, onFinish }: SplashOverlayProps) {
   // 등장과 퇴장을 한 값으로 묶지 않는다. 들어올 때는 감속(out), 나갈 때는
   // 가속(in) 이어야 자연스러운데 값 하나에는 곡선을 하나만 걸 수 있다.
-  const taglineIn = useRef(
+  const [taglineIn] = useState(
     // iOS 는 첫 프레임부터 문구가 떠 있어야 한다. 네이티브를 내리는 순간
     // 투명한 화면이 한 프레임이라도 비치면 그게 바로 깜빡임이다.
-    new Animated.Value(Platform.OS === "ios" ? 1 : 0),
-  ).current;
-  const taglineOut = useRef(new Animated.Value(0)).current;
-  const logoIn = useRef(new Animated.Value(0)).current;
-  const fade = useRef(new Animated.Value(1)).current;
+    () => new Animated.Value(Platform.OS === "ios" ? 1 : 0),
+  );
+  const [taglineOut] = useState(() => new Animated.Value(0));
+  const [logoIn] = useState(() => new Animated.Value(0));
+  const [fade] = useState(() => new Animated.Value(1));
 
   /** 문구 그림이 실제로 화면에 올라왔는가 (= 네이티브 스플래시를 내려도 되는가) */
   const [taglineShown, setTaglineShown] = useState(false);
@@ -218,7 +218,7 @@ export function SplashOverlay({ isAppReady, onFinish }: SplashOverlayProps) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Palette.white,
     alignItems: "center",
     justifyContent: "center",

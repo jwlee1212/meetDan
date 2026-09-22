@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -47,14 +47,20 @@ export function ReportSheet({
   const [detail, setDetail] = useState("");
   const [alsoBlock, setAlsoBlock] = useState(canBlock);
 
-  // 다시 열었을 때 지난 신고 내용이 남아있으면 곤란하다
-  useEffect(() => {
+  // 다시 열었을 때 지난 신고 내용이 남아있으면 곤란하다.
+  //
+  // effect 로 지우면 한 프레임 늦는다 — 시트가 열리는 첫 프레임에 지난 사유가
+  // 체크된 채로 보였다가 사라진다. 열리는 렌더(visible 이 false→true) 에서
+  // 바로 고치면 그 프레임이 아예 없다.
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) {
       setReason(null);
       setDetail("");
       setAlsoBlock(canBlock);
     }
-  }, [visible, canBlock]);
+  }
 
   // 여기는 일부러 비속어 필터(utils/profanity)를 걸지 않는다.
   //

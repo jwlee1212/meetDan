@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 import {
   Animated,
   Pressable,
@@ -26,7 +26,10 @@ export function PressScale({
   children,
   ...props
 }: PressScaleProps) {
-  const scale = useRef(new Animated.Value(1)).current;
+  // useState 의 지연 초기화로 만든다. useRef(new Animated.Value(1)) 은
+  // 렌더마다 Animated.Value 를 새로 만들어 버리고(첫 개만 쓰이고 나머지는
+  // 버려진다), .current 를 렌더 중에 읽는 것도 규칙 위반이다.
+  const [scale] = useState(() => new Animated.Value(1));
 
   const animate = (toValue: number) =>
     Animated.spring(scale, {

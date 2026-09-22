@@ -11,7 +11,7 @@
 //
 // 고르기 전에는 결과를 보여주지 않는다. 먼저 보면 많은 쪽에 끌려가고,
 // 그러면 투표가 아니라 다수 확인이 된다.
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Easing,
@@ -67,7 +67,7 @@ export function BalanceRow({ game, onVote }: BalanceRowProps) {
 
   // 고르기 전에는 0(=반반), 고르고 나면 1(=득표율)로 간다. 이미 고른 뒤에
   // 다시 들어온 경우엔 1에서 시작해 애니메이션 없이 결과를 보여준다.
-  const grow = useRef(new Animated.Value(voted ? 1 : 0)).current;
+  const [grow] = useState(() => new Animated.Value(voted ? 1 : 0));
 
   useEffect(() => {
     if (!voted) return;

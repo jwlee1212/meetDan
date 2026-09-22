@@ -35,25 +35,31 @@ export default function EditTeam() {
   const [count, setCount] = useState(3);
   const [currentCount, setCurrentCount] = useState(0);
 
-  // 화면 열리면 데이터 채우기
+  // ✅ [수정] store에서 가져온 myTeams 사용
+  const team = myTeams.find((t) => t.id === id);
+
+  // 화면 열리면 데이터 채우기.
+  //
+  // 한 팀에 대해 한 번만 채운다. 예전에는 myTeams 가 바뀔 때마다 effect 가
+  // 다시 돌면서 입력칸을 서버 값으로 덮었다 — 고치는 도중에 목록이 갱신되면
+  // 쓰던 글이 날아갔다.
+  const [filledId, setFilledId] = useState<string | null>(null);
+  if (team && team.id !== filledId) {
+    setFilledId(team.id);
+    setTitle(team.title);
+    setContent(team.content || "");
+    setCampus(team.campus);
+    setCount(team.count);
+    setCurrentCount(team.currentCount);
+  }
+
+  // 내 팀이 아니거나 이미 지워진 팀. 고칠 게 없으니 되돌린다.
   useEffect(() => {
-    if (!id) return;
-
-    // ✅ [수정] store에서 가져온 myTeams 사용
-    const team = myTeams.find((t) => t.id === id);
-
-    if (team) {
-      setTitle(team.title);
-      setContent(team.content || "");
-      setCampus(team.campus);
-      setCount(team.count);
-      setCurrentCount(team.currentCount);
-    } else {
-      Alert.alert("오류", "팀 정보를 찾을 수 없습니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
-    }
-  }, [id, myTeams]); // myTeams가 로드되면 다시 실행
+    if (!id || team) return;
+    Alert.alert("오류", "팀 정보를 찾을 수 없습니다.", [
+      { text: "확인", onPress: () => router.back() },
+    ]);
+  }, [id, team, router]);
 
   const handleUpdate = async () => {
     if (!id) return;

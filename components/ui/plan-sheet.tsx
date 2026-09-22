@@ -69,16 +69,26 @@ export function PlanSheet({
   const dateScroll = useRef<ScrollView>(null);
   const timeScroll = useRef<ScrollView>(null);
 
+  // 열릴 때마다 이미 잡힌 약속(없으면 기본값)에서 다시 시작한다.
+  // effect 로 미루면 지난번에 고른 값이 한 프레임 비쳤다가 바뀐다.
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
+    if (visible) {
+      setDate(initialPlan?.date ?? toDateString(days[0]));
+      setTime(initialPlan?.time ?? "19:00");
+      setPlace(initialPlan?.place ?? "");
+    }
+  }
+
   useEffect(() => {
     if (!visible) return;
 
     const nextDate = initialPlan?.date ?? toDateString(days[0]);
     const nextTime = initialPlan?.time ?? "19:00";
-    setDate(nextDate);
-    setTime(nextTime);
-    setPlace(initialPlan?.place ?? "");
 
     // 고른 값이 화면 밖에 있으면 못 보고 지나친다. 열릴 때 맞춰서 밀어준다.
+    // (스크롤 위치는 값이 아니라 화면을 만지는 일이라 여기 남는다)
     const dateIndex = days.findIndex((d) => toDateString(d) === nextDate);
     const timeIndex = TIME_SLOTS.indexOf(nextTime);
     const t = setTimeout(() => {

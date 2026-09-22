@@ -86,7 +86,7 @@ export default function SignupScreen() {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // 상단 프로세스바 애니메이션
-  const progress = useRef(new Animated.Value(1 / TOTAL_STEPS)).current;
+  const [progress] = useState(() => new Animated.Value(1 / TOTAL_STEPS));
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -94,11 +94,11 @@ export default function SignupScreen() {
       duration: 350,
       useNativeDriver: false,
     }).start();
-  }, [step]);
+  }, [step, progress]);
 
   // 학과 단계(캠퍼스 → 단과대 → 학과) 전환 애니메이션
   // -1 ~ 1 값을 좌우 이동 + 투명도로 변환해서 사용합니다.
-  const stageAnim = useRef(new Animated.Value(0)).current;
+  const [stageAnim] = useState(() => new Animated.Value(0));
   const isStageAnimating = useRef(false);
   const scrollRef = useRef<KeyboardAwareScrollView>(null);
 
@@ -205,7 +205,7 @@ export default function SignupScreen() {
       } else {
         Alert.alert("발송 실패", result.message ?? "다시 시도해주세요.");
       }
-    } catch (e) {
+    } catch {
       Alert.alert("오류", "인증번호 발송 중 문제가 발생했습니다.");
     } finally {
       setIsSendingCode(false);
@@ -227,7 +227,7 @@ export default function SignupScreen() {
       } else {
         Alert.alert("인증 실패", result.message ?? "인증번호를 확인해주세요.");
       }
-    } catch (e) {
+    } catch {
       Alert.alert("오류", "인증번호 확인 중 문제가 발생했습니다.");
     } finally {
       setIsVerifying(false);
@@ -320,7 +320,7 @@ export default function SignupScreen() {
           Alert.alert("알림", check.message ?? "다른 아이디를 사용해주세요.");
           return;
         }
-      } catch (e) {
+      } catch {
         Alert.alert("오류", "아이디 확인 중 문제가 발생했습니다.");
         return;
       } finally {
@@ -370,7 +370,7 @@ export default function SignupScreen() {
         Alert.alert("회원가입 완료", "밋단에 오신 것을 환영해요!", [
           { text: "확인", onPress: () => router.replace("/(tabs)") },
         ]);
-      } catch (e) {
+      } catch {
         Alert.alert("오류", "회원가입 처리 중 문제가 발생했습니다.");
       } finally {
         setIsSubmitting(false);
@@ -780,7 +780,7 @@ function DeptRow({
   isSelected: boolean;
   onPress: () => void;
 }) {
-  const selectAnim = useRef(new Animated.Value(isSelected ? 1 : 0)).current;
+  const [selectAnim] = useState(() => new Animated.Value(isSelected ? 1 : 0));
 
   useEffect(() => {
     Animated.timing(selectAnim, {
@@ -790,7 +790,7 @@ function DeptRow({
       // 배경색/글자색은 네이티브 드라이버를 지원하지 않음
       useNativeDriver: false,
     }).start();
-  }, [isSelected]);
+  }, [isSelected, selectAnim]);
 
   return (
     <TouchableOpacity activeOpacity={0.6} onPress={onPress}>

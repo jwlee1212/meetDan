@@ -135,7 +135,7 @@ export default function ProfileTab() {
       // 서버가 돌려준 값으로 전역 상태를 갱신한다 (displayName 도 여기서 다시 계산됨)
       setCurrentUser(result.data);
       setIsEditing(false);
-    } catch (e) {
+    } catch {
       Alert.alert("오류", "프로필 저장 중 문제가 발생했습니다.");
     } finally {
       setIsSaving(false);

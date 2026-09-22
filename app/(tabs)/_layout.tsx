@@ -1,17 +1,20 @@
 // 파일: app/(tabs)/_layout.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import type { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Hairline, Palette } from "@/constants/theme";
 
 /** 탭 아이콘: 선택되면 채워진 아이콘으로 바뀐다. */
+// color 를 string 이 아니라 ColorValue 로 받는다. RN 0.86(SDK 57)부터
+// tabBarIcon 이 넘겨주는 색이 ColorValue(= string | OpaqueColorValue)로 넓어졌다.
 const tabIcon = (name: string) => {
   const TabBarIcon = ({
     color,
     focused,
   }: {
-    color: string;
+    color: ColorValue;
     focused: boolean;
   }) => (
     <Ionicons

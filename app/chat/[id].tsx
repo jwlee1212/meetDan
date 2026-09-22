@@ -47,6 +47,7 @@ import {
   Spacing,
   Typo,
 } from "@/constants/theme";
+import { useLastPresent } from "@/hooks/use-last-present";
 import {
   ConfirmedPlan,
   Match,
@@ -207,13 +208,8 @@ export default function ChatRoom() {
   }, []);
 
   // 시트가 닫히는 애니메이션 동안 내용이 비어버리지 않게 마지막 대상을 붙잡아 둔다
-  const lastAction = useRef<ChatParticipant | null>(null);
-  if (actionTarget) lastAction.current = actionTarget;
-  const actionSheetUser = actionTarget ?? lastAction.current;
-
-  const lastReport = useRef<typeof reportTarget>(null);
-  if (reportTarget) lastReport.current = reportTarget;
-  const reportSheetTarget = reportTarget ?? lastReport.current;
+  const actionSheetUser = useLastPresent(actionTarget);
+  const reportSheetTarget = useLastPresent(reportTarget);
 
   /* ---------------- 매칭 / 방 ---------------- */
 
@@ -1372,7 +1368,7 @@ function ChatDrawer({
   onExitProposal,
 }: DrawerProps) {
   const insets = useSafeAreaInsets();
-  const progress = useRef(new Animated.Value(0)).current;
+  const [progress] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -1899,7 +1895,7 @@ const styles = StyleSheet.create({
 
   // 서랍
   drawerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(11,18,32,0.5)",
   },
   drawer: {
