@@ -93,18 +93,6 @@ export type ReportReason = "ABUSE" | "SEXUAL" | "SPAM" | "FRAUD" | "NO_SHOW" | "
 /** 신고 대상. 사람 한 명일 수도 있고, 채팅방 전체일 수도 있다. */
 export type ReportTargetType = "USER" | "ROOM";
 
-export interface Report {
-  id: string;
-  targetType: ReportTargetType;
-  targetId: string;
-  targetName: string;
-  reason: ReportReason;
-  detail: string;
-  /** 어느 채팅방에서 신고했는지 (운영자가 대화를 열어볼 수 있게) */
-  roomId?: string;
-  createdAt: string;
-}
-
 export interface BlockedUser {
   id: string;
   name: string;
@@ -197,7 +185,6 @@ interface AppState {
   sentRequests: MatchRequest[];
   receivedRequests: MatchRequest[];
   matches: Match[];
-  reports: Report[];
   blockedUsers: BlockedUser[];
 
   /** 알림 센터 목록. 화면에 들어갈 때 서버에서 다시 읽는다. */
@@ -253,8 +240,6 @@ interface AppState {
   ) => void;
   clearConfirmedPlan: (matchId: string) => void;
 
-  /** 신고 접수. 같은 대상을 중복 신고하면 false를 돌려준다. */
-  submitReport: (report: Omit<Report, "id" | "createdAt">) => boolean;
   /**
    * 서버(blocks)에서 읽어온 차단 목록으로 갈아끼운다.
    *
@@ -308,7 +293,6 @@ export const useStore = create<AppState>((set, get) => ({
   // 매칭 성사 목록과 그 상대 팀. 둘 다 setMatches 가 함께 채운다.
   matchedTeams: [],
   matches: [],
-  reports: [],
   blockedUsers: [],
 
   // 알림도 서버가 갖고 있다. 목록은 알림 화면이, 개수는 앱 시작 시
@@ -330,7 +314,6 @@ export const useStore = create<AppState>((set, get) => ({
       sentRequests: [],
       receivedRequests: [],
       matches: [],
-      reports: [],
       blockedUsers: [],
       notifications: [],
       unreadCount: 0,
@@ -383,26 +366,11 @@ export const useStore = create<AppState>((set, get) => ({
       ),
     })),
 
-  // ── 신고 / 차단 ────────────────────────────────────────
-  submitReport: (report) => {
-    // 같은 방에서 같은 대상을 또 신고하는 건 막는다. (운영 쪽 중복 접수 방지)
-    const already = get().reports.some(
-      (r) =>
-        r.targetType === report.targetType &&
-        r.targetId === report.targetId &&
-        r.roomId === report.roomId,
-    );
-    if (already) return false;
-
-    const newReport: Report = {
-      ...report,
-      id: `report_${Date.now()}`,
-      createdAt: formatDate(),
-    };
-    set((state) => ({ reports: [newReport, ...state.reports] }));
-    return true;
-  },
-
+  // ── 차단 ──────────────────────────────────────────────
+  //
+  // 신고(reports)는 스토어에 사본을 두지 않는다. 접수하면 끝이고 앱이
+  // 다시 읽을 일이 없다 — API.submitReport() 가 서버에 바로 쓰고,
+  // 중복 접수는 reports_no_duplicate 인덱스가 409 로 막는다.
   setBlockedUsers: (users) => set({ blockedUsers: users }),
 
   blockUser: (user) =>
