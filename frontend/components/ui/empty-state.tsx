@@ -1,6 +1,8 @@
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+
+import { Button } from "@/components/ui/button";
 
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 
@@ -37,12 +39,12 @@ export function EmptyState({
       <Text style={styles.title}>{title}</Text>
       {!!description && <Text style={styles.description}>{description}</Text>}
       {!!actionLabel && !!onAction && (
-        <Pressable
+        <Button
+          title={actionLabel}
+          size="md"
           onPress={onAction}
-          style={({ pressed }) => [styles.action, pressed && { opacity: 0.85 }]}
-        >
-          <Text style={styles.actionText}>{actionLabel}</Text>
-        </Pressable>
+          style={styles.action}
+        />
       )}
       {children}
     </View>
@@ -96,19 +98,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 19,
   },
-  action: {
-    marginTop: Spacing.lg,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.brand,
-  },
-  actionText: {
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.white,
-  },
+  action: { marginTop: Spacing.lg, paddingHorizontal: Spacing.xxl },
 });
 
 const hintStyles = StyleSheet.create({

@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { PressScale } from "@/components/ui/press-scale";
+import { PressableRow } from "@/components/ui/press-scale";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 
 export interface FeedRowProps {
@@ -81,39 +81,41 @@ export function FeedRow({
   }
 
   return (
-    <PressScale scaleTo={0.99} style={styles.row} onPress={onPress}>
+    <PressableRow style={styles.row} onPress={onPress} accessibilityRole="button">
       {body}
-    </PressScale>
+    </PressableRow>
   );
 }
 
-// 당근 피드처럼 좌우 끝까지 꽉 찬 행. 카드도 그림자도 없이 헤어라인으로만 나눈다.
+// 흰 카드 안에 놓이는 줄. 줄끼리는 헤어라인 없이 위아래 여백으로만 나눈다 —
+// 토스 홈의 목록 카드처럼. 좌우 여백은 카드 안쪽 여백과 같아서 카드 제목과
+// 글자 시작선이 맞는다.
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.screen,
-    paddingVertical: Spacing.lg,
+    gap: 14,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingVertical: Spacing.md,
     backgroundColor: Palette.white,
   },
   tile: {
-    width: 54,
-    height: 54,
-    borderRadius: Radius.md,
+    width: 52,
+    height: 52,
+    borderRadius: Radius.tile,
     alignItems: "center",
     justifyContent: "center",
     gap: 1,
   },
   tileCaption: { fontSize: 11, fontWeight: "800", letterSpacing: -0.2 },
 
-  body: { flex: 1 },
-  title: { ...Typo.subtitle, marginBottom: 2 },
-  meta: { ...Typo.caption, fontSize: 12 },
+  body: { flex: 1, justifyContent: "center" },
+  title: { ...Typo.subtitle, marginBottom: 3 },
+  meta: { ...Typo.caption, color: Palette.gray500 },
   excerpt: {
     ...Typo.caption,
-    color: Palette.gray500,
-    marginTop: 4,
-    lineHeight: 18,
+    color: Palette.gray600,
+    marginTop: 6,
+    lineHeight: 20,
   },
   badgeRow: {
     flexDirection: "row",

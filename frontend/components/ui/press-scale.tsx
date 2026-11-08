@@ -7,6 +7,8 @@ import {
   ViewStyle,
 } from "react-native";
 
+import { Palette } from "@/constants/theme";
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface PressScaleProps extends Omit<PressableProps, "style"> {
@@ -53,3 +55,28 @@ export function PressScale({
     </AnimatedPressable>
   );
 }
+
+interface PressableRowProps extends Omit<PressableProps, "style"> {
+  style?: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}
+
+/**
+ * 좌우 끝까지 꽉 찬 목록 줄용 터치 영역. 누르면 줄어들지 않고 배경만 옅게 깔린다.
+ *
+ * PressScale 을 꽉 찬 줄에 쓰면 줄 전체가 작아지면서 양 끝이 안으로 말려
+ * 들어가고, 위아래 헤어라인과 어긋나 보인다. 토스·당근도 목록 줄은 배경색으로만
+ * 눌림을 보여준다. 줄어드는 촉감은 버튼·작은 카드에만 쓴다.
+ */
+export function PressableRow({ style, children, ...props }: PressableRowProps) {
+  return (
+    <Pressable
+      {...props}
+      style={({ pressed }) => [style, pressed && rowPressed]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+const rowPressed: ViewStyle = { backgroundColor: Palette.gray100 };

@@ -2,6 +2,7 @@
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter, useSegments, useRootNavigationState } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -9,6 +10,7 @@ import type { Session } from "@supabase/supabase-js";
 
 import { API } from "@/api/client";
 import { SplashOverlay } from "@/components/SplashOverlay";
+import { ToastHost } from "@/components/ui/toast";
 import { registerForPushNotifications, setBadgeCount } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { useStore } from "@/store/useStore";
@@ -235,12 +237,22 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* 화면들이 노치/홈바 여백을 직접 계산할 수 있게 인셋 제공 */}
       <SafeAreaProvider>
+        {/*
+          화면은 전부 라이트 색으로 그린다(다크 팔레트는 아직 화면에 안 붙었다).
+          상태바를 "auto"로 두면 기기가 다크모드일 때 흰 배경 위에 흰 시계·배터리가
+          올라가 안 보인다. app.json 의 userInterfaceStyle 도 "light"로 맞춰뒀다.
+        */}
+        <StatusBar style="dark" />
+
         {/* 1. 메인 앱 화면 (평소엔 여기 보임) */}
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
         </Stack>
+
+        {/* 어느 화면에서 띄운 토스트든 여기 한 곳에서 그린다 */}
+        <ToastHost />
 
         {/* 2. 커스텀 스플래쉬 화면
               "학교에서 사랑을 찾다" → 로고 순으로 보여준 뒤, 앱 준비까지

@@ -15,6 +15,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 import { API } from "@/api/client";
 import { Screen } from "@/components/ui/screen";
+import { toast } from "@/components/ui/toast";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import { assertClean } from "@/utils/profanity";
 import { useStore } from "../../store/useStore"; // ✅ 경로 확인
@@ -98,9 +99,8 @@ export default function EditTeam() {
       // 서버가 돌려준 값으로 맞춘다. 내 팀 탭이 다시 읽기 전까지의 표시용이다.
       updateTeam(id, result.data);
 
-      Alert.alert("수정 완료! ✨", "팀 정보가 변경되었습니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      toast.show("팀 정보를 수정했어요");
+      router.back();
     } finally {
       setIsSaving(false);
     }

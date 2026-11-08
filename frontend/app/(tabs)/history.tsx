@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -15,10 +14,18 @@ import {
 
 import { API } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyHint, EmptyState } from "@/components/ui/empty-state";
-import { PressScale } from "@/components/ui/press-scale";
-import { Divider, Screen, ScreenHeader } from "@/components/ui/screen";
+import { PressableRow } from "@/components/ui/press-scale";
+import {
+  CardListBottom,
+  CardListItem,
+  CardListTop,
+  Screen,
+  ScreenHeader,
+} from "@/components/ui/screen";
 import { Segmented } from "@/components/ui/segmented";
+import { toast } from "@/components/ui/toast";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import { dDayLabel, formatPlanSummary, isPastPlan } from "@/utils/plan";
 import { Match, MatchRequest, useStore } from "../../store/useStore";
@@ -120,62 +127,62 @@ export default function HistoryTab() {
     const view = requestStatusView(item);
 
     return (
-      <PressScale
-        scaleTo={0.985}
-        style={[styles.card, styles.row, muted && styles.cardMuted]}
-        disabled={!actionable}
-        // 상세 화면은 '신청 한 건'을 연다. 팀 id 로는 어느 신청인지 알 수 없다.
-        onPress={() =>
-          actionable && router.push(`/match/party/${item.id}` as any)
-        }
-      >
-        <View style={styles.avatarWrap}>
-          <View
-            style={[styles.avatar, muted && styles.avatarMuted]}
-            >
-            <Text style={[styles.avatarText, muted && styles.avatarTextMuted]}>
-              {team.title.charAt(0)}
+      <CardListItem>
+        <PressableRow
+          style={styles.row}
+          disabled={!actionable}
+          // 상세 화면은 '신청 한 건'을 연다. 팀 id 로는 어느 신청인지 알 수 없다.
+          onPress={() =>
+            actionable && router.push(`/match/party/${item.id}` as any)
+          }
+        >
+          <View style={styles.avatarWrap}>
+            <View style={[styles.avatar, muted && styles.avatarMuted]}>
+              <Text
+                style={[styles.avatarText, muted && styles.avatarTextMuted]}
+              >
+                {team.title.charAt(0)}
+              </Text>
+            </View>
+            {actionable && <View style={styles.newDot} />}
+          </View>
+
+          <View style={styles.rowBody}>
+            <View style={styles.rowTop}>
+              <Text style={styles.title} numberOfLines={1}>
+                {team.title}
+              </Text>
+              <Text style={styles.time}>{item.timestamp}</Text>
+            </View>
+
+            <Text style={styles.meta} numberOfLines={1}>
+              {team.campus} · {team.dept} · {team.count}명
             </Text>
-          </View>
-          {actionable && <View style={styles.newDot} />}
-        </View>
 
-        <View style={styles.rowBody}>
-          <View style={styles.rowTop}>
-            <Text style={styles.title} numberOfLines={1}>
-              {team.title}
-            </Text>
-            <Text style={styles.time}>{item.timestamp}</Text>
+            <View style={styles.statusRow}>
+              <Badge label={view.label} tone={view.tone} />
+              <Text style={styles.statusHint}>{view.hint}</Text>
+            </View>
           </View>
 
-          <Text style={styles.meta} numberOfLines={1}>
-            {team.campus} · {team.dept} · {team.count}명
-          </Text>
-
-          <View style={styles.statusRow}>
-            <Badge label={view.label} tone={view.tone} />
-            <Text style={styles.statusHint}>{view.hint}</Text>
-          </View>
-        </View>
-
-        {actionable && (
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={Palette.gray300}
-            style={styles.chevron}
-          />
-        )}
-      </PressScale>
+          {actionable && (
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={Palette.gray300}
+              style={styles.chevron}
+            />
+          )}
+        </PressableRow>
+      </CardListItem>
     );
   };
 
   // 약속 날짜가 지난 매칭은 아래로 내린다. 다음에 만날 약속이 위에 보여야 한다.
   const sortedMatches = useMemo(() => {
-    const done = (m: Match) => !!m.confirmedPlan && isPastPlan(m.confirmedPlan.date);
-    return [...matches].sort(
-      (a, b) => Number(done(a)) - Number(done(b)),
-    );
+    const done = (m: Match) =>
+      !!m.confirmedPlan && isPastPlan(m.confirmedPlan.date);
+    return [...matches].sort((a, b) => Number(done(a)) - Number(done(b)));
   }, [matches]);
 
   const renderMatchItem = ({ item }: { item: Match }) => {
@@ -183,9 +190,8 @@ export default function HistoryTab() {
     const completed = !!plan && isPastPlan(plan.date);
 
     return (
-      <View style={[styles.card, completed && styles.completedCard]}>
-        <PressScale
-          scaleTo={0.985}
+      <CardListItem>
+        <PressableRow
           style={styles.row}
           onPress={() => router.push(`/chat/${item.id}` as any)}
         >
@@ -241,29 +247,20 @@ export default function HistoryTab() {
             color={Palette.gray300}
             style={styles.chevron}
           />
-        </PressScale>
+        </PressableRow>
 
         {completed && (
           <View style={styles.reviewRow}>
-            <Pressable
-              onPress={() =>
-                Alert.alert("준비중입니다", "후기 기능은 곧 만나볼 수 있어요.")
-              }
-              style={({ pressed }) => [
-                styles.reviewButton,
-                pressed && { opacity: 0.6 },
-              ]}
-            >
-              <Ionicons
-                name="create-outline"
-                size={16}
-                color={Palette.gray700}
-              />
-              <Text style={styles.reviewButtonText}>후기 남기기</Text>
-            </Pressable>
+            <Button
+              title="후기 남기기"
+              icon="create-outline"
+              variant="outline"
+              size="md"
+              onPress={() => toast.show("후기 기능은 곧 열릴 예정이에요")}
+            />
           </View>
         )}
-      </View>
+      </CardListItem>
     );
   };
 
@@ -273,8 +270,14 @@ export default function HistoryTab() {
       title: "받은 신청이 없어요",
       description: "팀을 게시판에 공개하면 신청을 받을 수 있어요.",
       hints: [
-        { icon: "eye-outline" as const, text: "내 팀 탭에서 공개 상태를 확인해보세요" },
-        { icon: "notifications-outline" as const, text: "신청이 오면 알림으로 알려드려요" },
+        {
+          icon: "eye-outline" as const,
+          text: "내 팀 탭에서 공개 상태를 확인해보세요",
+        },
+        {
+          icon: "notifications-outline" as const,
+          text: "신청이 오면 알림으로 알려드려요",
+        },
       ],
     },
     SENT: {
@@ -282,8 +285,14 @@ export default function HistoryTab() {
       title: "보낸 신청이 없어요",
       description: "마음에 드는 팀에 먼저 신청해보세요.",
       hints: [
-        { icon: "home-outline" as const, text: "홈 탭에서 열린 팀을 둘러볼 수 있어요" },
-        { icon: "time-outline" as const, text: "상대가 수락하면 바로 채팅이 열려요" },
+        {
+          icon: "home-outline" as const,
+          text: "홈 탭에서 열린 팀을 둘러볼 수 있어요",
+        },
+        {
+          icon: "time-outline" as const,
+          text: "상대가 수락하면 바로 채팅이 열려요",
+        },
       ],
     },
     MATCHES: {
@@ -291,23 +300,39 @@ export default function HistoryTab() {
       title: "성사된 매칭이 없어요",
       description: "신청을 수락하면 여기에서 바로 대화할 수 있어요.",
       hints: [
-        { icon: "calendar-outline" as const, text: "채팅방에서 만날 날짜를 정할 수 있어요" },
-        { icon: "shield-checkmark-outline" as const, text: "불쾌한 상대는 신고·차단할 수 있어요" },
+        {
+          icon: "calendar-outline" as const,
+          text: "채팅방에서 만날 날짜를 정할 수 있어요",
+        },
+        {
+          icon: "shield-checkmark-outline" as const,
+          text: "불쾌한 상대는 신고·차단할 수 있어요",
+        },
       ],
     },
   }[activeTab];
 
   const { hints, ...emptyProps } = emptyByTab;
   const emptyView = (
-    <EmptyState {...emptyProps}>
-      {hints.map((h) => (
-        <EmptyHint key={h.text} icon={h.icon} text={h.text} />
-      ))}
-    </EmptyState>
+    <CardListItem>
+      <EmptyState {...emptyProps}>
+        {hints.map((h) => (
+          <EmptyHint key={h.text} icon={h.icon} text={h.text} />
+        ))}
+      </EmptyState>
+    </CardListItem>
   );
 
+  // 목록 전체가 카드 한 장이다. 위·아래 뚜껑이 줄들을 감싼다.
+  const listTop = (
+    <CardListTop>
+      <View style={styles.listTopSpace} />
+    </CardListTop>
+  );
+  const listBottom = <CardListBottom />;
+
   return (
-    <Screen>
+    <Screen tone="grouped">
       <ScreenHeader title="활동" />
 
       <Segmented<TabType>
@@ -330,7 +355,8 @@ export default function HistoryTab() {
           renderItem={renderMatchItem}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <Divider inset={72} />}
+          ListHeaderComponent={listTop}
+          ListFooterComponent={listBottom}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
@@ -347,7 +373,8 @@ export default function HistoryTab() {
           renderItem={renderRequestItem}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <Divider inset={72} />}
+          ListHeaderComponent={listTop}
+          ListFooterComponent={listBottom}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
@@ -367,19 +394,16 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { paddingBottom: Spacing.xxxl },
 
-  // 좌우 끝까지 꽉 찬 흰 행. 카드로 띄우지 않고 헤어라인으로만 나눈다.
-  card: {
-    backgroundColor: Palette.white,
-  },
-  // 이미 끝난 신청은 한 톤 내려 눕혀둔다
-  cardMuted: { backgroundColor: Palette.gray50 },
+  listTopSpace: { height: Spacing.sm },
 
+  // 흰 카드 안의 줄. 줄끼리는 헤어라인 없이 여백으로만 나눈다.
+  // 이미 끝난 신청·지난 약속은 배경 대신 아바타와 글자 톤을 내려 눕혀둔다.
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.screen,
-    paddingVertical: Spacing.lg,
+    gap: 14,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingVertical: Spacing.md,
   },
 
   avatarWrap: { position: "relative" },
@@ -433,28 +457,10 @@ const styles = StyleSheet.create({
   chevron: { marginLeft: -Spacing.xs },
 
   // 지난 약속: 흐리게 눕혀두고 후기 버튼만 또렷하게
-  completedCard: { backgroundColor: Palette.gray50 },
   titleDone: { color: Palette.gray600 },
   reviewRow: {
-    paddingHorizontal: Spacing.screen,
-    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingBottom: Spacing.md,
     marginTop: -Spacing.sm,
-  },
-  reviewButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.white,
-    borderWidth: 1,
-    borderColor: Palette.gray300,
-  },
-  reviewButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
   },
 });

@@ -1,64 +1,33 @@
 import React from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableOpacityProps,
-} from "react-native";
-import { Colors, Palette } from "@/constants/theme";
+import { StyleProp, ViewStyle } from "react-native";
 
-interface MainButtonProps extends TouchableOpacityProps {
+import { Button } from "@/components/ui/button";
+
+interface MainButtonProps {
   title: string;
+  onPress?: () => void;
   isLoading?: boolean;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * 폼 맨 아래의 큰 파란 버튼. 로그인·회원가입·프로필 저장이 쓴다.
+ * 모양은 공통 Button(primary, lg)이 정한다 — 예전 TouchableOpacity 버전은
+ * 모서리·글자 크기·누름 효과가 다른 버튼들과 달랐다.
+ */
 export const MainButton = ({
   title,
+  onPress,
   isLoading = false,
   disabled = false,
   style,
-  ...props
-}: MainButtonProps) => {
-  const isDisabled = disabled || isLoading;
-
-  return (
-    <TouchableOpacity
-      style={[styles.button, disabled && styles.buttonDisabled, style]}
-      disabled={isDisabled}
-      activeOpacity={0.85}
-      {...props}
-    >
-      {isLoading ? (
-        <ActivityIndicator color={Palette.white} />
-      ) : (
-        <Text
-          style={[styles.buttonText, disabled && styles.buttonTextDisabled]}
-        >
-          {title}
-        </Text>
-      )}
-    </TouchableOpacity>
-  );
-};
-
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: Colors.light.primary, // 테마에서 색상 가져옴
-    paddingVertical: 17,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonDisabled: {
-    backgroundColor: Colors.light.backgroundMuted,
-  },
-  buttonText: {
-    color: Palette.white,
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  buttonTextDisabled: {
-    color: Colors.light.disabled,
-  },
-});
+}: MainButtonProps) => (
+  <Button
+    title={title}
+    onPress={onPress}
+    loading={isLoading}
+    disabled={disabled}
+    style={style}
+  />
+);

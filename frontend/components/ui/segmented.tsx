@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Hairline, Palette, Spacing } from "@/constants/theme";
+import { Palette, Radius, Spacing } from "@/constants/theme";
 
 export interface SegmentItem<T extends string> {
   value: T;
@@ -17,12 +17,12 @@ interface SegmentedProps<T extends string> {
 }
 
 /**
- * 밑줄 탭.
+ * 알약 세그먼트 (회색 트랙 위에 흰 알약).
  *
- * 예전엔 회색 트랙 위에 알약이 얹히는 세그먼트였는데, 목록 화면이 흰 바탕이
- * 되면서 트랙이 배경에 묻혔다. 흰 피드 위에서 탭을 나누는 건 토스도 당근도
- * 밑줄로 한다 — 알약과 달리 가로폭을 안 잡아먹고, 목록과 같은 흰 면 위에
- * 그대로 얹히기 때문이다.
+ * 한동안 밑줄 탭이었다. 목록 화면이 흰 바탕이라 회색 트랙이 묻혔기 때문이다.
+ * 이제 목록 화면도 회색 바탕 위에 흰 카드를 올리므로, 트랙(gray200)은 바탕
+ * 위에서, 고른 알약(흰색)은 트랙 위에서 각각 한 단계씩 밝아져 또렷하게 읽힌다.
+ * 토스가 회색 바탕 화면에서 탭을 나누는 방식이다.
  */
 export function Segmented<T extends string>({
   items,
@@ -65,23 +65,21 @@ export function Segmented<T extends string>({
 const styles = StyleSheet.create({
   track: {
     flexDirection: "row",
-    backgroundColor: Palette.white,
-    paddingHorizontal: Spacing.sm,
-    borderBottomWidth: Hairline.height,
-    borderBottomColor: Hairline.color,
+    marginHorizontal: Spacing.cardInset,
+    marginBottom: Spacing.md,
+    padding: 4,
+    borderRadius: Radius.md,
+    backgroundColor: Palette.gray200,
   },
   segment: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 13,
-    // 활성 밑줄과 같은 두께를 미리 깔아둔다. 안 그러면 탭을 옮길 때마다
-    // 글자가 2px 씩 위아래로 튄다.
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+    paddingVertical: 9,
+    borderRadius: Radius.sm,
   },
   segmentActive: {
-    borderBottomColor: Palette.gray900,
+    backgroundColor: Palette.white,
   },
   label: {
     fontSize: 15,

@@ -8,10 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -19,20 +15,26 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { API } from "@/api/client";
 
 import { Badge, BadgeTone } from "@/components/ui/badge";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { EmptyHint, EmptyState } from "@/components/ui/empty-state";
-import { PressScale } from "@/components/ui/press-scale";
-import { Screen, ScreenHeader, SectionHeader } from "@/components/ui/screen";
+import { PressableRow } from "@/components/ui/press-scale";
 import {
-  Colors,
+  Card,
+  Screen,
+  ScreenHeader,
+  SectionHeader,
+} from "@/components/ui/screen";
+import {
+  CardSurface,
   Hairline,
   Palette,
   Radius,
-  Shadow,
   Spacing,
   Typo,
 } from "@/constants/theme";
@@ -50,7 +52,6 @@ function teamStatus(team: Team): { label: string; tone: BadgeTone } {
 
 export default function MyTeamTab() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const myTeams = useStore((state) => state.myTeams);
   const setMyTeams = useStore((state) => state.setMyTeams);
@@ -62,22 +63,7 @@ export default function MyTeamTab() {
   const [inputCode, setInputCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 시트 하단 여백을 키보드 상태에 맞춰 조정하려면 열림/닫힘을 알아야 한다.
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", () =>
-      setIsKeyboardOpen(true),
-    );
-    const hide = Keyboard.addListener("keyboardDidHide", () =>
-      setIsKeyboardOpen(false),
-    );
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
 
   // 화면을 벗어난 뒤 타이머가 살아 있으면 언마운트된 컴포넌트를 건드린다.
   useEffect(() => {
@@ -193,7 +179,7 @@ export default function MyTeamTab() {
       setJoinModalVisible(false);
       setInputCode("");
       await reload();
-      Alert.alert("참가 완료", `${result.data.title} 팀에 합류했어요.`);
+      toast.show(`${result.data.title} 팀에 합류했어요`);
     } finally {
       setIsJoining(false);
     }
@@ -210,53 +196,60 @@ export default function MyTeamTab() {
     const progress = Math.min(item.currentCount / item.count, 1);
 
     return (
-      <PressScale
-        scaleTo={0.985}
-        style={styles.card}
-        onPress={() => setExpandedId(isExpanded ? null : item.id)}
-      >
-        <View style={styles.cardTop}>
-          <Badge label={status.label} tone={status.tone} />
-          <Ionicons
-            name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={18}
-            color={Palette.gray400}
-          />
-        </View>
-
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.cardMeta}>
-          {item.campus} · {item.dept}
-          {item.age != null && ` · 평균 ${item.age}세`}
-        </Text>
-
-        {/* 인원 현황을 막대로 보여주면 "몇 명 더 모아야 하는지"가 즉시 읽힌다 */}
-        <View style={styles.progressBlock}>
-          <View style={styles.progressLabelRow}>
-            <Text style={styles.progressLabel}>
-              {isFull
-                ? "인원이 다 모였어요"
-                : `${item.count - item.currentCount}명만 더 모으면 돼요`}
-            </Text>
-            <Text style={styles.progressCount}>
-              {item.currentCount}
-              <Text style={styles.progressTotal}>/{item.count}</Text>
-            </Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${progress * 100}%`,
-                  backgroundColor: isFull ? Palette.green : Palette.brand,
-                },
-              ]}
+      <View style={styles.card}>
+        {/*
+          펼치기·접기는 윗부분만 맡는다. 블록 전체를 누를 수 있게 두면 펼친
+          관리 영역의 빈 곳을 눌러도 블록 전체가 회색으로 번쩍이며 접힌다.
+        */}
+        <PressableRow
+          style={styles.cardHeader}
+          onPress={() => setExpandedId(isExpanded ? null : item.id)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: isExpanded }}
+        >
+          <View style={styles.cardTop}>
+            <Badge label={status.label} tone={status.tone} />
+            <Ionicons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={Palette.gray400}
             />
           </View>
-        </View>
+
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={styles.cardMeta}>
+            {item.campus} · {item.dept}
+            {item.age != null && ` · 평균 ${item.age}세`}
+          </Text>
+
+          {/* 인원 현황을 막대로 보여주면 "몇 명 더 모아야 하는지"가 즉시 읽힌다 */}
+          <View style={styles.progressBlock}>
+            <View style={styles.progressLabelRow}>
+              <Text style={styles.progressLabel}>
+                {isFull
+                  ? "인원이 다 모였어요"
+                  : `${item.count - item.currentCount}명만 더 모으면 돼요`}
+              </Text>
+              <Text style={styles.progressCount}>
+                {item.currentCount}
+                <Text style={styles.progressTotal}>/{item.count}</Text>
+              </Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${progress * 100}%`,
+                    backgroundColor: isFull ? Palette.green : Palette.brand,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </PressableRow>
 
         {isExpanded && (
           <View style={styles.detail}>
@@ -318,23 +311,12 @@ export default function MyTeamTab() {
 
             {/* 공개 전환은 팀장 몫이다. teams_update 정책도 팀장만 통과시킨다. */}
             {isOwner && isFull && !isMatched && (
-              <Pressable
+              <Button
+                title={isPublic ? "비공개로 돌리기" : "게시판에 등록하기"}
+                variant={isPublic ? "secondary" : "primary"}
+                size="md"
                 onPress={() => handleTogglePublic(item, !isPublic)}
-                style={({ pressed }) => [
-                  styles.primaryAction,
-                  isPublic && styles.secondaryAction,
-                  pressed && { opacity: 0.85 },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.primaryActionText,
-                    isPublic && styles.secondaryActionText,
-                  ]}
-                >
-                  {isPublic ? "비공개로 돌리기" : "게시판에 등록하기"}
-                </Text>
-              </Pressable>
+              />
             )}
 
             {isOwner && !isFull && !isMatched && (
@@ -394,7 +376,7 @@ export default function MyTeamTab() {
             </View>
           </View>
         )}
-      </PressScale>
+      </View>
     );
   };
 
@@ -403,25 +385,21 @@ export default function MyTeamTab() {
       <ScreenHeader title="내 팀" subtitle="만든 팀과 참여한 팀을 관리해요" />
 
       <View style={styles.actionRow}>
-        <PressScale
-          scaleTo={0.96}
-          style={[styles.actionCard, styles.actionCardBrand]}
+        {/* 주 동작 하나만 채운 파랑. 회색 바탕 위라 보조 동작은 회색 채움이
+            아니라 흰 바탕+테두리로 둔다 (회색 채움은 바탕에 묻힌다). */}
+        <Button
+          title="팀 만들기"
+          icon="add-circle"
+          flex={1}
           onPress={() => router.push("/write")}
-        >
-          <Ionicons name="add-circle" size={22} color={Palette.white} />
-          <Text style={[styles.actionText, { color: Palette.white }]}>
-            팀 만들기
-          </Text>
-        </PressScale>
-
-        <PressScale
-          scaleTo={0.96}
-          style={styles.actionCard}
+        />
+        <Button
+          title="코드로 참여"
+          icon="ticket"
+          variant="outline"
+          flex={1}
           onPress={() => setJoinModalVisible(true)}
-        >
-          <Ionicons name="ticket" size={22} color={Palette.gray600} />
-          <Text style={styles.actionText}>코드로 참여</Text>
-        </PressScale>
+        />
       </View>
 
       {isLoading ? (
@@ -452,147 +430,87 @@ export default function MyTeamTab() {
             ) : undefined
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="people-outline"
-              title="아직 만든 팀이 없어요"
-              description="팀을 만들고 초대 코드로 친구를 부르면 과팅을 시작할 수 있어요."
-              actionLabel="첫 팀 만들기"
-              onAction={() => router.push("/write")}
-            >
-              <EmptyHint icon="people-outline" text="같은 성별끼리 2~4명이 한 팀이에요" />
-              <EmptyHint icon="ticket-outline" text="초대 코드를 받았다면 '코드로 참여'를 누르세요" />
-            </EmptyState>
+            <Card padded={false}>
+              <EmptyState
+                icon="people-outline"
+                title="아직 만든 팀이 없어요"
+                description="팀을 만들고 초대 코드로 친구를 부르면 과팅을 시작할 수 있어요."
+                actionLabel="첫 팀 만들기"
+                onAction={() => router.push("/write")}
+              >
+                <EmptyHint
+                  icon="people-outline"
+                  text="같은 성별끼리 2~4명이 한 팀이에요"
+                />
+                <EmptyHint
+                  icon="ticket-outline"
+                  text="초대 코드를 받았다면 '코드로 참여'를 누르세요"
+                />
+              </EmptyState>
+            </Card>
           }
         />
       )}
 
-      {/* 초대 코드 입력: 아래에서 올라오는 시트 */}
-      <Modal
+      {/* 초대 코드 입력: 아래에서 올라오는 시트 (키보드 처리는 BottomSheet 가 한다) */}
+      <BottomSheet
         visible={joinModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setJoinModalVisible(false)}
+        onClose={() => setJoinModalVisible(false)}
+        title="초대 코드 입력"
+        description={
+          "친구에게 받은 6자리 코드를 입력해주세요.\n" +
+          "과팅 팀이라 같은 성별끼리만 모일 수 있어요."
+        }
       >
-        {/*
-          시트가 화면 맨 아래에 붙어 있어서 키보드가 올라오면 입력창과 버튼이 그대로 가린다.
-          iOS는 padding으로 시트를 밀어 올리고, Android는 edge-to-edge라 창이 리사이즈되지
-          않으므로 키보드 이벤트로 높이를 계산하는 height 방식을 쓴다.
-        */}
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
-          <Pressable
-            style={styles.sheetBackdrop}
-            onPress={() => setJoinModalVisible(false)}
-          />
-          <View
-            style={[
-              styles.sheet,
-              // 키보드가 떠 있으면 홈 인디케이터 영역은 가려지므로 그만큼 여백을 뺀다.
-              { paddingBottom: isKeyboardOpen ? 20 : insets.bottom + 20 },
-            ]}
-          >
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>초대 코드 입력</Text>
-            <Text style={styles.sheetDesc}>
-              친구에게 받은 6자리 코드를 입력해주세요.{"\n"}
-              과팅 팀이라 같은 성별끼리만 모일 수 있어요.
-            </Text>
+        <TextInput
+          style={styles.codeInput}
+          placeholder="X7A9Z2"
+          placeholderTextColor={Palette.gray400}
+          value={inputCode}
+          onChangeText={(t) => setInputCode(t.toUpperCase())}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={6}
+          returnKeyType="go"
+          onSubmitEditing={handleJoinTeam}
+        />
 
-            <TextInput
-              style={styles.codeInput}
-              placeholder="X7A9Z2"
-              placeholderTextColor={Palette.gray400}
-              value={inputCode}
-              onChangeText={(t) => setInputCode(t.toUpperCase())}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={6}
-              returnKeyType="go"
-              onSubmitEditing={handleJoinTeam}
-            />
-
-            <Pressable
-              onPress={handleJoinTeam}
-              disabled={!inputCode.trim() || isJoining}
-              style={({ pressed }) => [
-                styles.sheetSubmit,
-                (!inputCode.trim() || isJoining) && styles.sheetSubmitDisabled,
-                pressed && { opacity: 0.85 },
-              ]}
-            >
-              {isJoining ? (
-                <ActivityIndicator color={Palette.gray500} />
-              ) : (
-                <Text
-                  style={[
-                    styles.sheetSubmitText,
-                    !inputCode.trim() && { color: Palette.gray500 },
-                  ]}
-                >
-                  입장하기
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        <Button
+          title="입장하기"
+          onPress={handleJoinTeam}
+          loading={isJoining}
+          disabled={!inputCode.trim()}
+        />
+      </BottomSheet>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // 헤더 아래 첫 흰 블록. 아래 여백으로 회색 바탕이 비쳐 목록과 끊긴다.
+  // 헤더 아래 버튼 줄. 회색 바탕 위에 바로 놓는다.
   actionRow: {
     flexDirection: "row",
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.lg,
-    marginBottom: Spacing.gap,
-    backgroundColor: Colors.light.surface,
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.cardInset,
+    paddingBottom: Spacing.sm,
   },
-  // 버튼은 블록이 아니므로 모서리를 굴려도 된다. 그림자만 뺀다.
-  actionCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: Spacing.lg,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.gray100,
-  },
-  // 주 동작 하나만 채운 파랑. 나머지는 회색으로 둔다.
-  actionCardBrand: { backgroundColor: Palette.brand },
-  actionText: {
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
-  },
-
   listContent: { paddingBottom: Spacing.xxxl },
-  sectionHeader: { backgroundColor: Colors.light.surface },
+  // 회색 바탕 위의 작은 제목. 글자 시작선을 화면 제목과 맞춘다.
+  sectionHeader: { paddingHorizontal: Spacing.xl },
 
-  // 팀 하나가 블록 하나. 좌우로 꽉 차고, 아래 여백으로 회색 바탕이 비쳐
-  // 블록 사이가 회색 띠로 끊긴다 (토스 설정 화면과 같은 방식).
-  card: {
-    backgroundColor: Colors.light.surface,
-    padding: Spacing.screen,
-    marginBottom: Spacing.gap,
-  },
+  // 팀 하나가 카드 한 장. 회색 바탕 위에 둥글게 떠서 팀끼리 경계가 분명하다.
+  card: CardSurface,
+  cardHeader: { padding: Spacing.cardPadding },
   cardTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.md,
   },
-  cardTitle: Typo.subtitle,
+  cardTitle: Typo.cardTitle,
   cardMeta: { ...Typo.caption, marginTop: 4 },
 
   progressBlock: { marginTop: Spacing.lg },
@@ -624,8 +542,9 @@ const styles = StyleSheet.create({
   progressFill: { height: "100%", borderRadius: Radius.full },
 
   detail: {
-    marginTop: Spacing.xl,
+    marginHorizontal: Spacing.cardPadding,
     paddingTop: Spacing.xl,
+    paddingBottom: Spacing.cardPadding,
     borderTopWidth: Hairline.height,
     borderTopColor: Hairline.color,
     gap: Spacing.md,
@@ -665,21 +584,6 @@ const styles = StyleSheet.create({
     color: Palette.gray600,
   },
 
-  primaryAction: {
-    paddingVertical: Spacing.lg,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.brand,
-    alignItems: "center",
-  },
-  primaryActionText: {
-    color: Palette.white,
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-  },
-  secondaryAction: { backgroundColor: Palette.gray100 },
-  secondaryActionText: { color: Palette.gray700 },
-
   lockedBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -713,25 +617,6 @@ const styles = StyleSheet.create({
   },
   manageDivider: { width: 1, height: 14, backgroundColor: Palette.gray300 },
 
-  sheetBackdrop: { flex: 1, backgroundColor: "rgba(11,18,32,0.5)" },
-  sheet: {
-    backgroundColor: Palette.white,
-    borderTopLeftRadius: Radius.xxl,
-    borderTopRightRadius: Radius.xxl,
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.md,
-    ...Shadow.modal,
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: Radius.full,
-    backgroundColor: Palette.gray300,
-    marginBottom: Spacing.xl,
-  },
-  sheetTitle: Typo.title,
-  sheetDesc: { ...Typo.caption, marginTop: 6, marginBottom: Spacing.xl },
   codeInput: {
     backgroundColor: Palette.gray100,
     borderRadius: Radius.md,
@@ -741,19 +626,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 6,
     color: Palette.gray900,
+    marginTop: Spacing.xl,
     marginBottom: Spacing.md,
-  },
-  sheetSubmit: {
-    paddingVertical: 17,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.brand,
-    alignItems: "center",
-  },
-  sheetSubmitDisabled: { backgroundColor: Palette.gray200 },
-  sheetSubmitText: {
-    color: Palette.white,
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
   },
 });

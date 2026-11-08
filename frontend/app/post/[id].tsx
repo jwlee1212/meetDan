@@ -1,7 +1,7 @@
 // 파일: app/post/[id].tsx
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,12 +16,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { BottomSheet, SheetCancel } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { MemberProfileSheet } from "@/components/ui/member-profile-sheet";
 import { PressScale } from "@/components/ui/press-scale";
-import { NavHeader, Screen, SectionGap } from "@/components/ui/screen";
+import { NavHeader, Screen } from "@/components/ui/screen";
 import { getAvatarSource } from "@/constants/avatars";
 import {
   CampusColor,
+  CardSurface,
   GenderColor,
   Palette,
   Radius,
@@ -29,7 +32,30 @@ import {
   Spacing,
   Typo,
 } from "@/constants/theme";
-import { Team, TeamMember, useStore } from "@/store/useStore";
+import { MatchRequest, Team, TeamMember, useStore } from "@/store/useStore";
+
+/**
+ * 내 팀으로 이 게시글에 신청할 수 없는 이유. 신청할 수 있으면 null.
+ *
+ * 서버(마이그레이션 009 의 assert_match_request_valid, 대기중 중복 금지
+ * 인덱스)가 막는 것과 같은 조건이다. 예전에는 시트에서 팀을 고른 뒤에야
+ * Alert 으로 알려줬다 — 고를 수 없는 팀을 고르게 해놓고 혼내는 셈이었다.
+ * 이제 시트에서 미리 흐리게 보여주고 이유를 그 줄에 적는다.
+ */
+function blockReason(
+  team: Team,
+  target: Team,
+  waitingFrom: Set<string>,
+): string | null {
+  if (team.status === "MATCHED") return "매칭이 끝난 팀이에요";
+  if (team.gender === target.gender) return "같은 성별 팀에는 신청할 수 없어요";
+  if (team.count !== target.count)
+    return `${team.count}명 팀이에요 · 상대는 ${target.count}명 팀`;
+  if (team.currentCount < team.count)
+    return `팀원이 ${team.count - team.currentCount}명 더 모여야 해요`;
+  if (waitingFrom.has(team.id)) return "이미 신청했어요 · 수락 대기중";
+  return null;
+}
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams();
@@ -39,10 +65,21 @@ export default function PostDetail() {
   const posts = useStore((state) => state.posts);
   const myTeams = useStore((state) => state.myTeams);
   const setMyTeams = useStore((state) => state.setMyTeams);
+  const setRequests = useStore((state) => state.setRequests);
 
   const targetPost = posts.find((p) => p.id.toString() === id);
   const [modalVisible, setModalVisible] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+  /** 지금 신청을 보내는 중인 내 팀. 그 줄에만 스피너를 띄운다. */
+  const [sendingTeamId, setSendingTeamId] = useState<string | null>(null);
+  const isSending = sendingTeamId != null;
+  /**
+   * 이 팀과 이미 오간 신청. 못 읽으면 null 로 두고 평소처럼 신청을 받는다 —
+   * 중복은 어차피 서버가 막는다. 이것 때문에 신청 자체를 막지는 않는다.
+   */
+  const [requests, setLocalRequests] = useState<{
+    received: MatchRequest[];
+    sent: MatchRequest[];
+  } | null>(null);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(
     null,
   );
@@ -60,8 +97,15 @@ export default function PostDetail() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const result = await API.getMyTeams();
+      const [result, reqs] = await Promise.all([
+        API.getMyTeams(),
+        API.getMatchRequests(),
+      ]);
       if (!alive) return;
+      if (reqs.code === 200 && reqs.data) {
+        setLocalRequests(reqs.data);
+        setRequests(reqs.data);
+      }
       if (result.code === 200 && result.data) {
         setMyTeams(result.data);
       } else if (result.code !== 401) {
@@ -75,7 +119,38 @@ export default function PostDetail() {
     return () => {
       alive = false;
     };
-  }, [setMyTeams]);
+  }, [setMyTeams, setRequests]);
+
+  const targetId = targetPost?.id;
+
+  /** 이 팀이 내 팀에게 먼저 보낸, 아직 답하지 않은 신청 */
+  const incoming = useMemo(
+    () =>
+      requests?.received.find(
+        (r) => r.partnerTeam.id === targetId && r.status === "WAITING",
+      ),
+    [requests, targetId],
+  );
+
+  /** 내 팀 중 이 팀에게 신청을 보내고 답을 기다리는 팀 */
+  const waitingFrom = useMemo(
+    () =>
+      new Set(
+        (requests?.sent ?? [])
+          .filter((r) => r.partnerTeam.id === targetId && r.status === "WAITING")
+          .map((r) => r.myTeamId),
+      ),
+    [requests, targetId],
+  );
+
+  /** 시트에 놓을 순서: 신청할 수 있는 팀이 위, 막힌 팀은 이유와 함께 아래 */
+  const teamOptions = useMemo(() => {
+    if (!targetPost) return [];
+    return myTeams
+      .map((team) => ({ team, reason: blockReason(team, targetPost, waitingFrom) }))
+      .sort((a, b) => Number(a.reason != null) - Number(b.reason != null));
+  }, [myTeams, targetPost, waitingFrom]);
+  const eligibleCount = teamOptions.filter((o) => o.reason == null).length;
 
   if (!targetPost) {
     return (
@@ -100,7 +175,10 @@ export default function PostDetail() {
     }
 
     if (myTeams.length === 0) {
-      Alert.alert("팀이 없어요!", "먼저 [내 팀] 탭에서 팀을 만들어주세요.");
+      Alert.alert("아직 팀이 없어요", "팀을 만들고 친구를 모으면 신청할 수 있어요.", [
+        { text: "닫기", style: "cancel" },
+        { text: "팀 만들기", onPress: () => router.push("/write") },
+      ]);
       return;
     }
     setModalVisible(true);
@@ -116,33 +194,15 @@ export default function PostDetail() {
   const confirmRequest = async (myTeam: Team) => {
     if (isSending) return;
 
-    if (myTeam.count !== targetPost.count) {
-      Alert.alert(
-        "인원수 불일치",
-        `상대방은 ${targetPost.count}명을 원해요! (우리팀: ${myTeam.count}명)`,
-      );
+    // 막힌 팀은 시트에서 눌리지 않는다. 그래도 목록이 바뀌는 사이에 눌렸다면
+    // 이유를 그대로 알려준다. 최종 판단은 어차피 서버가 한다.
+    const reason = blockReason(myTeam, targetPost, waitingFrom);
+    if (reason) {
+      Alert.alert("신청할 수 없어요", reason);
       return;
     }
 
-    // 과팅이니 이성 팀에게만 신청할 수 있다
-    if (myTeam.gender === targetPost.gender) {
-      Alert.alert(
-        "신청할 수 없어요",
-        "이성 팀에게만 신청할 수 있어요. 다른 팀을 찾아보세요.",
-      );
-      return;
-    }
-
-    // 인원이 다 모여야 신청할 수 있다 (상대는 '다 모인 팀'으로 알고 수락한다)
-    if (myTeam.currentCount < myTeam.count) {
-      Alert.alert(
-        "아직 팀원이 부족해요",
-        `${myTeam.count - myTeam.currentCount}명이 더 모여야 신청할 수 있어요.`,
-      );
-      return;
-    }
-
-    setIsSending(true);
+    setSendingTeamId(myTeam.id);
     try {
       const result = await API.sendMatchRequest(myTeam.id, targetPost.id);
       if (result.code !== 200) {
@@ -152,11 +212,12 @@ export default function PostDetail() {
       }
 
       setModalVisible(false);
-      Alert.alert("신청 완료! 💌", "상대방이 수락하면 채팅방이 열립니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      toast.show("신청을 보냈어요. 상대가 수락하면 채팅방이 열려요", {
+        icon: "paper-plane",
+      });
+      router.back();
     } finally {
-      setIsSending(false);
+      setSendingTeamId(null);
     }
   };
 
@@ -207,15 +268,11 @@ export default function PostDetail() {
           </View>
         </View>
 
-        <SectionGap />
-
         {/* ── 소개글 ───────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>소개</Text>
           <Text style={styles.content}>{targetPost.content}</Text>
         </View>
-
-        <SectionGap />
 
         {/* ── 팀원 ─────────────────────────────────────── */}
         <View style={styles.section}>
@@ -261,17 +318,21 @@ export default function PostDetail() {
 
       {/* ── 하단 신청 버튼 ───────────────────────────────── */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        <PressScale
-          style={[styles.requestButton, isLoadingTeams && styles.requestButtonBusy]}
-          disabled={isLoadingTeams}
-          onPress={handlePressRequest}
-        >
-          {isLoadingTeams ? (
-            <ActivityIndicator color={Palette.white} />
-          ) : (
-            <Text style={styles.reqBtnText}>이 팀에게 과팅 신청하기 👋</Text>
-          )}
-        </PressScale>
+        {incoming ? (
+          // 상대가 먼저 신청했다면 새로 신청할 게 아니라 받은 신청에 답하면 된다
+          <Button
+            title="이 팀이 먼저 신청했어요 · 확인하기"
+            onPress={() => router.push(`/match/party/${incoming.id}` as any)}
+          />
+        ) : waitingFrom.size > 0 ? (
+          <Button title="신청을 보냈어요 · 수락을 기다리는 중" disabled />
+        ) : (
+          <Button
+            title="이 팀에게 과팅 신청하기 👋"
+            loading={isLoadingTeams}
+            onPress={handlePressRequest}
+          />
+        )}
       </View>
 
       {/* ── 신청할 내 팀 고르기 ───────────────────────────── */}
@@ -279,39 +340,45 @@ export default function PostDetail() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         title="어떤 팀으로 신청할까요?"
-        description={`우리 팀 목록 (${myTeams.length}개)`}
+        description={
+          eligibleCount > 0
+            ? `신청할 수 있는 팀 ${eligibleCount}개`
+            : `지금 신청할 수 있는 팀이 없어요. 상대는 ${targetPost.count}명 ${targetPost.gender === "F" ? "여자" : "남자"} 팀이에요.`
+        }
       >
         <ScrollView style={styles.teamSelectList}>
-          {myTeams.map((team) => (
-            <PressScale
-              key={team.id}
-              scaleTo={0.98}
-              style={styles.teamSelectCard}
-              disabled={isSending}
-              onPress={() => confirmRequest(team)}
-            >
-              <View style={styles.flexShrink}>
-                <Text style={styles.teamSelectTitle}>{team.title}</Text>
-                <Text style={styles.teamSelectInfo}>
-                  {team.currentCount}/{team.count}명 ·{" "}
-                  {team.status === "MATCHED"
-                    ? "매칭 완료"
-                    : team.status === "ACTIVE"
-                      ? "공개중"
-                      : "비공개"}
-                </Text>
-              </View>
-              {isSending ? (
-                <ActivityIndicator color={Palette.gray400} />
-              ) : (
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={Palette.gray400}
-                />
-              )}
-            </PressScale>
-          ))}
+          {teamOptions.map(({ team, reason }) => {
+            const blocked = reason != null;
+            const sendingThis = sendingTeamId === team.id;
+            return (
+              <PressScale
+                key={team.id}
+                scaleTo={0.98}
+                style={[styles.teamSelectCard, blocked && styles.teamSelectCardBlocked]}
+                disabled={blocked || isSending}
+                onPress={() => confirmRequest(team)}
+              >
+                <View style={styles.flexShrink}>
+                  <Text
+                    style={[styles.teamSelectTitle, blocked && styles.teamSelectTitleBlocked]}
+                    numberOfLines={1}
+                  >
+                    {team.title}
+                  </Text>
+                  <Text style={styles.teamSelectInfo} numberOfLines={1}>
+                    {reason ?? `${team.count}명 · ${team.gender === "F" ? "여자" : "남자"} 팀 · 신청 가능`}
+                  </Text>
+                </View>
+                {sendingThis ? (
+                  <ActivityIndicator color={Palette.gray400} />
+                ) : blocked ? (
+                  <Ionicons name="remove-circle-outline" size={18} color={Palette.gray300} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={Palette.gray400} />
+                )}
+              </PressScale>
+            );
+          })}
         </ScrollView>
         <SheetCancel onPress={() => setModalVisible(false)} />
       </BottomSheet>
@@ -354,12 +421,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyText: { ...Typo.body, color: Palette.gray500 },
 
-  scrollContent: { paddingBottom: 120 },
+  scrollContent: { paddingTop: Spacing.md, paddingBottom: 120 },
 
-  // 제목·태그·요약을 한 블록에 담는다. 좌우로 꽉 차고 모서리를 굴리지 않는다.
+  // 제목·태그·요약 / 소개 / 팀원을 각자 흰 카드 한 장에 담는다.
   heroCard: {
-    backgroundColor: Palette.white,
-    padding: Spacing.screen,
+    ...CardSurface,
+    padding: Spacing.cardPadding,
   },
   badgeRow: { flexDirection: "row", gap: Spacing.xs, marginBottom: Spacing.md },
   title: { ...Typo.display, fontSize: 22, marginBottom: Spacing.md },
@@ -403,10 +470,10 @@ const styles = StyleSheet.create({
   statLabel: { ...Typo.caption, fontSize: 12 },
 
   section: {
-    backgroundColor: Palette.white,
-    padding: Spacing.screen,
+    ...CardSurface,
+    padding: Spacing.cardPadding,
   },
-  sectionTitle: Typo.section,
+  sectionTitle: { ...Typo.cardTitle, marginBottom: Spacing.sm },
   sectionDesc: { ...Typo.caption, marginTop: 4 },
   content: { ...Typo.body, lineHeight: 24 },
 
@@ -446,20 +513,9 @@ const styles = StyleSheet.create({
     borderTopColor: Palette.gray200,
     ...Shadow.soft,
   },
-  requestButton: {
-    backgroundColor: Palette.brand,
-    paddingVertical: 18,
-    borderRadius: Radius.lg,
-    alignItems: "center",
-    // 스피너와 글자의 높이가 달라 버튼이 들썩이지 않게 고정한다
-    justifyContent: "center",
-    minHeight: 56,
-  },
-  requestButtonBusy: { opacity: 0.7 },
-  reqBtnText: { color: Palette.white, fontSize: 17, fontWeight: "700" },
 
   flexShrink: { flex: 1 },
-  teamSelectList: { maxHeight: 300 },
+  teamSelectList: { maxHeight: 300, marginTop: Spacing.lg },
   teamSelectCard: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -470,6 +526,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     marginBottom: Spacing.sm,
   },
+  teamSelectCardBlocked: {
+    backgroundColor: Palette.gray50,
+    borderColor: Palette.gray100,
+  },
   teamSelectTitle: {
     fontSize: 16,
     fontWeight: "700",
@@ -477,5 +537,6 @@ const styles = StyleSheet.create({
     color: Palette.gray900,
     marginBottom: 2,
   },
+  teamSelectTitleBlocked: { color: Palette.gray600 },
   teamSelectInfo: { ...Typo.caption },
 });

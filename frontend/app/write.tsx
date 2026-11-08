@@ -16,6 +16,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 import { API } from "@/api/client";
 import { Screen } from "@/components/ui/screen";
+import { toast } from "@/components/ui/toast";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import { assertClean } from "@/utils/profanity";
 import { useStore } from "../store/useStore";
@@ -133,16 +134,13 @@ export default function Write() {
         return;
       }
 
-      Alert.alert(
-        "방 생성 완료! 🏠",
-        `초대 코드는 ${result.data.inviteCode ?? "내 팀 탭"}이에요. 친구에게 알려주세요.`,
-        [
-          {
-            text: "확인",
-            onPress: () => router.replace("/(tabs)/my_team"),
-          },
-        ],
+      // 초대 코드는 내 팀 탭에서 언제든 다시 보고 복사할 수 있다
+      toast.show(
+        result.data.inviteCode
+          ? `팀을 만들었어요. 초대 코드 ${result.data.inviteCode}`
+          : "팀을 만들었어요. 내 팀 탭에서 친구를 초대해보세요",
       );
+      router.replace("/(tabs)/my_team");
     } catch (error) {
       Alert.alert("오류", "방 생성 중 문제가 발생했습니다.");
       console.error(error);

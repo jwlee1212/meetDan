@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import { REPORT_REASONS, ReportReason } from "@/store/useStore";
 
@@ -157,23 +158,14 @@ export function ReportSheet({
       </ScrollView>
 
       <View style={styles.actions}>
-        <Pressable
-          style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.6 }]}
-          onPress={onClose}
-        >
-          <Text style={styles.cancelText}>취소</Text>
-        </Pressable>
-        <Pressable
+        <Button title="취소" variant="secondary" flex={1} onPress={onClose} />
+        <Button
+          title="신고 접수하기"
+          variant="danger"
+          flex={2}
           disabled={!reason}
           onPress={submit}
-          style={({ pressed }) => [
-            styles.submit,
-            !reason && styles.submitDisabled,
-            pressed && reason && { opacity: 0.85 },
-          ]}
-        >
-          <Text style={styles.submitText}>신고 접수하기</Text>
-        </Pressable>
+        />
       </View>
     </BottomSheet>
   );
@@ -271,32 +263,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.sm,
     marginTop: Spacing.lg,
-  },
-  cancel: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.gray100,
-    alignItems: "center",
-  },
-  cancelText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
-  },
-  submit: {
-    flex: 2,
-    paddingVertical: 16,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.red,
-    alignItems: "center",
-  },
-  submitDisabled: { backgroundColor: Palette.gray200 },
-  submitText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.white,
   },
 });

@@ -4,17 +4,23 @@
  *
  * 기준 세 가지 — 이 파일 밖에서 색을 새로 만들지 않는다.
  *
- * 1) 카드가 아니라 블록 (토스 / 당근 문법)
- *    두 앱 모두 둥근 카드를 화면에 띄우지 않는다. 대신
- *      · 내용은 좌우 끝까지 꽉 찬 흰 블록에 담고 (여백·모서리·그림자 없음)
- *      · 블록 안의 줄은 헤어라인으로 나누고
- *      · 블록과 블록 사이는 회색 띠(SectionGap)로 끊는다
- *    그림자는 "진짜로 떠 있는 것"(FAB·하단 고정 버튼·모달)에만 쓴다.
+ * 1) 회색 바탕 위의 흰 카드 (토스 홈 문법)
+ *    예전에는 "카드 대신 꽉 찬 흰 블록 + 헤어라인"이었다. 토스 설정 화면을
+ *    본뜬 것인데, 홈처럼 성격이 다른 묶음이 쌓이는 화면에 쓰니 흰 줄이
+ *    헤어라인으로만 나뉘어 화면 전체가 한 덩어리로 보였다 — 명암이 없었다.
+ *    토스도 앱의 얼굴인 홈·혜택·자산 화면은 이렇게 그린다.
+ *      · 바탕은 회색(canvas)
+ *      · 묶음 하나가 흰 카드 하나 (모서리 Radius.card, 좌우 Spacing.cardInset)
+ *      · 카드 안에는 헤어라인을 거의 쓰지 않는다. 줄 간격과 글자 위계로 나눈다
+ *      · 카드 사이는 Spacing.cardGap 만큼 회색 바탕이 비친다
+ *    그림자는 여전히 "진짜로 떠 있는 것"(FAB·하단 고정 버튼·모달)에만 쓴다.
+ *    카드는 바탕과의 명도 차이로만 떠 보이게 한다.
  *
- *    화면이 휑해 보이는 건 껍데기가 없어서가 아니라 한 줄에 담긴 정보가
- *    적어서다. 당근 피드가 빽빽한 이유도 카드 때문이 아니라 썸네일·제목·
- *    동네·시간·가격·관심수를 한 줄에 다 넣기 때문이다. 여백을 껍데기로
- *    메우지 말고 내용으로 채운다.
+ *    채팅처럼 한 종류가 끝없이 이어지는 화면은 지금처럼 흰 바탕을 쓴다.
+ *
+ * 1-1) 글자 위계를 크게 벌린다
+ *    명암의 절반은 글자다. 화면 제목(26)과 카드 제목(20), 목록 제목(17),
+ *    보조 글자(14, 회색)의 차이가 커야 눈이 어디부터 읽을지 안다.
  *
  * 2) 파랑은 "누를 수 있는 것"에만
  *    채운 파랑 = 지금 눌러야 할 것. 옅은 색 알약 = 그냥 정보.
@@ -36,24 +42,30 @@ export const Palette = {
      기준 미달이었다. 한 단계 눌러 5.20:1 로 맞췄다. */
   brand: "#1668DB",
   brandPressed: "#1257BC",
-  brandWeak: "#E8F1FE", // 옅은 브랜드 배경
+  brandWeak: "#E8F3FF", // 옅은 브랜드 배경
   brandText: "#175FC0", // brandWeak 위 글자 (5.37:1)
 
-  /* 그레이 스케일
-     gray500 위쪽은 전부 글자로 써도 되는 색이다.
+  /* 그레이 스케일 — 토스 그레이 계열.
+     토스 원본(600 #6B7684, 500 #8B95A1)은 회색 바탕 위에서 4.5:1 을 못 넘어서
+     글자용 두 단계(600·500)만 한 칸씩 진하게 잡았다. 나머지는 토스 값 그대로.
+     gray500 위쪽은 전부 글자로 써도 되는 색이다 (canvas 위에서도 4.6:1 이상).
      gray400 아래는 글자로 쓰지 않는다 — 아이콘·테두리·비활성 전용. */
-  gray900: "#161B22", // 제목
-  gray800: "#2F3843",
-  gray700: "#4A5462", // 본문
-  gray600: "#5F6B7A", // 보조 설명 (캔버스 위에서도 5.01:1)
-  gray500: "#626D7C", // 흐린 메타 — 여기까지가 글자 하한선
-  gray400: "#848E9C", // 아이콘·비활성 (3.32:1, 비텍스트 기준 통과)
-  gray300: "#B4BCC7", // 테두리
-  gray200: "#DFE4EA", // 구분선
-  gray100: "#EDF0F4", // 채움 배경
-  gray50: "#F5F7FA",
-  /** 묶음을 끊는 회색 띠와 grouped 화면의 바탕. 흰 블록이 이 위에 놓인다. */
-  canvas: "#F4F6F9",
+  gray900: "#191F28", // 제목
+  gray800: "#333D4B",
+  gray700: "#4E5968", // 본문
+  gray600: "#5F6B7A", // 보조 설명 (canvas 위 4.92:1)
+  gray500: "#646F7C", // 흐린 메타 — 여기까지가 글자 하한선 (canvas 위 4.64:1)
+  gray400: "#8B95A1", // 아이콘·비활성 (흰 바탕 3.04:1, 비텍스트 기준 통과)
+  gray300: "#D1D6DB", // 테두리
+  gray200: "#E5E8EB", // 구분선
+  gray100: "#F2F4F6", // 채움 배경
+  gray50: "#F9FAFB",
+  /**
+   * 카드 화면의 바탕. 흰 카드가 이 위에 놓인다.
+   * gray100 과 같은 값이라, 카드 밖(회색 바탕 위)에 gray100 채움 버튼·칩을
+   * 두면 사라진다. 카드 밖에는 흰 채움이나 테두리 있는 것만 둔다.
+   */
+  canvas: "#F2F4F6",
   white: "#FFFFFF",
 
   /* 시맨틱 — solid 는 흰 배경 위 글자/아이콘용,
@@ -93,6 +105,12 @@ export const Spacing = {
   screen: 16,
   /** 블록과 블록 사이 회색 띠의 높이 */
   gap: 10,
+  /** 카드와 화면 가장자리 사이 (회색 바탕이 비치는 폭) */
+  cardInset: 12,
+  /** 카드 안쪽 여백 */
+  cardPadding: 20,
+  /** 카드와 카드 사이 */
+  cardGap: 12,
 } as const;
 
 export const Radius = {
@@ -101,6 +119,10 @@ export const Radius = {
   lg: 14,
   xl: 18,
   xxl: 24,
+  /** 회색 바탕 위 흰 카드 */
+  card: 20,
+  /** 목록 줄 앞의 색 타일·아바타 사각형 */
+  tile: 16,
   full: 999,
 } as const;
 
@@ -111,21 +133,28 @@ export const Radius = {
 export const Typo = {
   /** 화면 대표 제목 */
   display: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "800" as const,
-    letterSpacing: -0.6,
+    letterSpacing: -0.8,
     color: Palette.gray900,
   },
-  /** 헤더 제목 */
+  /** 헤더·시트 제목 */
   title: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: "700" as const,
+    letterSpacing: -0.5,
+    color: Palette.gray900,
+  },
+  /** 카드 맨 위 제목 ("지금 열린 팀") */
+  cardTitle: {
+    fontSize: 19,
+    fontWeight: "800" as const,
     letterSpacing: -0.5,
     color: Palette.gray900,
   },
   /** 카드/리스트 제목 */
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700" as const,
     letterSpacing: -0.4,
     color: Palette.gray900,
@@ -146,7 +175,7 @@ export const Typo = {
   },
   /** 보조 설명 */
   caption: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "500" as const,
     letterSpacing: -0.2,
     color: Palette.gray600,
@@ -194,6 +223,18 @@ export const Shadow = {
     default: {},
   }),
 } as const;
+
+/**
+ * 회색 바탕 위 흰 카드의 겉모양. <Card> 를 못 쓰는 곳(FlatList 행 자체가
+ * 카드인 경우, 기존 블록 스타일을 카드로 바꾸는 경우)에서 펼쳐 쓴다.
+ */
+export const CardSurface = {
+  marginHorizontal: Spacing.cardInset,
+  marginBottom: Spacing.cardGap,
+  borderRadius: Radius.card,
+  backgroundColor: Palette.white,
+  overflow: "hidden" as const,
+};
 
 /** 1px 헤어라인 (기기 픽셀 밀도와 무관하게 얇게) */
 export const Hairline = {

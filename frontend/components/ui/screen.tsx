@@ -3,7 +3,15 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View, ViewProps, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, Hairline, Palette, Spacing, Typo } from "@/constants/theme";
+import {
+  CardSurface,
+  Colors,
+  Hairline,
+  Palette,
+  Radius,
+  Spacing,
+  Typo,
+} from "@/constants/theme";
 
 interface ScreenProps extends ViewProps {
   /**
@@ -173,6 +181,93 @@ export function SectionGap({ height = Spacing.gap }: { height?: number }) {
   return <View style={{ height, backgroundColor: Colors.light.background }} />;
 }
 
+/* ------------------------------------------------------------------ */
+/* 카드 (회색 바탕 위의 흰 카드)                                        */
+/* ------------------------------------------------------------------ */
+
+interface CardProps extends ViewProps {
+  /** 안쪽 여백을 줄지. 목록처럼 줄이 직접 여백을 갖는 내용이면 false */
+  padded?: boolean;
+}
+
+/**
+ * 묶음 하나를 담는 흰 카드. grouped 화면에서 쓴다.
+ *
+ * 그림자 없이 회색 바탕과의 명도 차이만으로 떠 보이게 한다. 카드끼리는
+ * 아래 여백(Spacing.cardGap)으로 떨어진다.
+ */
+export function Card({ padded = true, style, children, ...props }: CardProps) {
+  return (
+    <View style={[styles.card, padded && styles.cardPadded, style]} {...props}>
+      {children}
+    </View>
+  );
+}
+
+interface CardHeaderProps {
+  title: string;
+  count?: number;
+  /** 우측 텍스트 버튼 */
+  actionLabel?: string;
+  onAction?: () => void;
+  /** 제목 아래 한 줄 설명 */
+  description?: string;
+  style?: ViewStyle;
+}
+
+/** 카드 맨 위의 굵은 제목. "무엇의 묶음인지"를 크게 말한다. */
+export function CardHeader({
+  title,
+  count,
+  actionLabel,
+  onAction,
+  description,
+  style,
+}: CardHeaderProps) {
+  return (
+    <View style={[styles.cardHeader, style]}>
+      <View style={styles.cardHeaderRow}>
+        <Text style={styles.cardTitle}>
+          {title}
+          {count != null && <Text style={styles.cardCount}> {count}</Text>}
+        </Text>
+        {!!actionLabel && !!onAction && (
+          <Pressable
+            onPress={onAction}
+            hitSlop={8}
+            style={({ pressed }) => pressed && { opacity: 0.6 }}
+          >
+            <Text style={styles.sectionAction}>{actionLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+      {!!description && (
+        <Text style={styles.cardDescription}>{description}</Text>
+      )}
+    </View>
+  );
+}
+
+/*
+ * FlatList 를 카드 하나에 담는 조각들.
+ *
+ * FlatList 는 줄을 하나씩 그리므로 카드 하나로 감쌀 수 없다. 그래서 카드를
+ * 위 뚜껑(ListHeaderComponent 끝) · 줄(각 renderItem) · 아래 뚜껑
+ * (ListFooterComponent)으로 잘라서 이어 붙인다. 셋 다 좌우 여백과 흰 바탕이
+ * 같아서 이어 붙이면 둥근 카드 한 장으로 보인다.
+ */
+export function CardListTop({ children }: { children?: React.ReactNode }) {
+  return <View style={[styles.cardSlice, styles.cardTop]}>{children}</View>;
+}
+
+export function CardListItem({ children }: { children: React.ReactNode }) {
+  return <View style={styles.cardSlice}>{children}</View>;
+}
+
+export function CardListBottom() {
+  return <View style={[styles.cardSlice, styles.cardBottom]} />;
+}
+
 /** 리스트 항목 사이 얇은 구분선 */
 export function Divider({ inset = 0 }: { inset?: number }) {
   return <View style={[styles.divider, { marginLeft: inset }]} />;
@@ -190,9 +285,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
+    // 카드 화면에서 제목이 카드 글자 시작선(12+20)보다 조금 바깥에 오도록
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
   headerBordered: {
     borderBottomWidth: Hairline.height,
@@ -257,6 +353,37 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.2,
     color: Palette.gray600,
+  },
+
+  card: CardSurface,
+  cardPadded: { padding: Spacing.cardPadding },
+  cardHeader: {
+    paddingHorizontal: Spacing.cardPadding,
+    paddingTop: Spacing.cardPadding,
+    paddingBottom: Spacing.sm,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardTitle: Typo.cardTitle,
+  cardCount: { color: Palette.brand },
+  cardDescription: { ...Typo.caption, marginTop: 4 },
+
+  cardSlice: {
+    marginHorizontal: Spacing.cardInset,
+    backgroundColor: Palette.white,
+  },
+  cardTop: {
+    borderTopLeftRadius: Radius.card,
+    borderTopRightRadius: Radius.card,
+  },
+  cardBottom: {
+    height: Spacing.md,
+    marginBottom: Spacing.cardGap,
+    borderBottomLeftRadius: Radius.card,
+    borderBottomRightRadius: Radius.card,
   },
 
   divider: {

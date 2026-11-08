@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Palette, Radius, Spacing, Typo } from "@/constants/theme";
 import type { ConfirmedPlan } from "@/store/useStore";
@@ -232,20 +233,12 @@ export function PlanSheet({
       </ScrollView>
 
       <View style={styles.actions}>
-        <Pressable
-          style={({ pressed }) => [styles.cancel, pressed && { opacity: 0.6 }]}
-          onPress={onClose}
-        >
-          <Text style={styles.cancelText}>취소</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.submit, pressed && { opacity: 0.85 }]}
+        <Button title="취소" variant="secondary" flex={1} onPress={onClose} />
+        <Button
+          title={initialPlan ? "약속 수정" : "약속 확정"}
+          flex={2}
           onPress={submit}
-        >
-          <Text style={styles.submitText}>
-            {initialPlan ? "약속 수정" : "약속 확정"}
-          </Text>
-        </Pressable>
+        />
       </View>
 
       {!!initialPlan && !!onRemove && (
@@ -341,32 +334,6 @@ const styles = StyleSheet.create({
   },
 
   actions: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.lg },
-  cancel: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.gray100,
-    alignItems: "center",
-  },
-  cancelText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
-  },
-  submit: {
-    flex: 2,
-    paddingVertical: 16,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.brand,
-    alignItems: "center",
-  },
-  submitText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.white,
-  },
 
   remove: { alignItems: "center", paddingVertical: Spacing.md },
   removeText: {

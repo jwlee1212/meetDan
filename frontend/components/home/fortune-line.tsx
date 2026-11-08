@@ -32,16 +32,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 6,
-    paddingHorizontal: Spacing.screen,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
     backgroundColor: Palette.white,
   },
   text: {
     ...Typo.caption,
     flex: 1,
-    lineHeight: 19,
+    lineHeight: 20,
     // 아이콘 높이와 첫 줄을 맞춘다
-    marginTop: -1,
+    marginTop: -2,
   },
   score: { color: Palette.gray900, fontWeight: "700" },
 });

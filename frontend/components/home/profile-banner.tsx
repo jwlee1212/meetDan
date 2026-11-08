@@ -13,7 +13,9 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 
-import { Hairline, Palette, Spacing } from "@/constants/theme";
+import { Card } from "@/components/ui/screen";
+
+import { Palette, Spacing } from "@/constants/theme";
 import type { ProfileProgress } from "@/utils/profile-progress";
 
 interface ProfileBannerProps {
@@ -23,31 +25,33 @@ interface ProfileBannerProps {
 
 export function ProfileBanner({ progress, onPress }: ProfileBannerProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.banner,
-        pressed && { backgroundColor: Palette.gray100 },
-      ]}
-    >
-      <Ionicons
-        name="person-circle-outline"
-        size={17}
-        color={Palette.gray500}
-      />
+    <Card padded={false}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.banner,
+          pressed && { backgroundColor: Palette.gray100 },
+        ]}
+      >
+        <Ionicons
+          name="person-circle-outline"
+          size={20}
+          color={Palette.gray500}
+        />
 
-      <Text style={styles.text} numberOfLines={1}>
-        {progress.title}
-      </Text>
+        <Text style={styles.text} numberOfLines={1}>
+          {progress.title}
+        </Text>
 
-      {/* 몇 개 중 몇 개인지. 숫자 하나가 진행 막대보다 조용하고 정확하다.
-          색은 여기 하나만 쓴다 — 이 줄에서 눈이 갈 곳은 "얼마나 남았나" 뿐이다. */}
-      <Text style={styles.count}>
-        {progress.done}/{progress.total}
-      </Text>
+        {/* 몇 개 중 몇 개인지. 숫자 하나가 진행 막대보다 조용하고 정확하다.
+            색은 여기 하나만 쓴다 — 이 줄에서 눈이 갈 곳은 "얼마나 남았나" 뿐이다. */}
+        <Text style={styles.count}>
+          {progress.done}/{progress.total}
+        </Text>
 
-      <Ionicons name="chevron-forward" size={15} color={Palette.gray300} />
-    </Pressable>
+        <Ionicons name="chevron-forward" size={16} color={Palette.gray400} />
+      </Pressable>
+    </Card>
   );
 }
 
@@ -63,22 +67,19 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingHorizontal: Spacing.screen,
-    paddingVertical: 11,
-    backgroundColor: Palette.white,
-    borderBottomWidth: Hairline.height,
-    borderBottomColor: Hairline.color,
+    gap: 8,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingVertical: Spacing.lg,
   },
   text: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "600",
     letterSpacing: -0.3,
     color: Palette.gray700,
   },
   count: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "800",
     letterSpacing: -0.2,
     color: Palette.brandText,

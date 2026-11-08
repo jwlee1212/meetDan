@@ -22,11 +22,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API } from "@/api/client";
 import { Badge } from "@/components/ui/badge";
 import { MemberProfileSheet } from "@/components/ui/member-profile-sheet";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { PressScale } from "@/components/ui/press-scale";
-import { NavHeader, Screen, SectionGap } from "@/components/ui/screen";
+import { NavHeader, Screen } from "@/components/ui/screen";
 import { getAvatarSource } from "@/constants/avatars";
 import {
   CampusColor,
+  CardSurface,
   GenderColor,
   Palette,
   Radius,
@@ -123,12 +126,8 @@ export default function MatchPartyDetail() {
         setMatches(mine.data.matches, mine.data.partnerTeams);
       }
 
-      Alert.alert("매칭 수락 💖", "채팅방이 열렸어요. 대화를 시작해보세요.", [
-        {
-          text: "채팅방으로 이동",
-          onPress: () => router.replace(`/chat/${result.data!.id}` as any),
-        },
-      ]);
+      toast.show("매칭이 성사됐어요! 먼저 인사를 건네보세요", { icon: "heart" });
+      router.replace(`/chat/${result.data.id}` as any);
     } finally {
       setIsWorking(false);
     }
@@ -225,16 +224,12 @@ export default function MatchPartyDetail() {
         </View>
 
 
-        <SectionGap />
-
         {/* ── 소개글 ───────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>💬 팀 소개</Text>
           <Text style={styles.content}>{team.content}</Text>
         </View>
 
-
-        <SectionGap />
 
         {/* ── 팀원 ─────────────────────────────────────── */}
         <View style={styles.section}>
@@ -294,27 +289,19 @@ export default function MatchPartyDetail() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
         {canAnswer ? (
           <View style={styles.footerRow}>
-            <PressScale
-              scaleTo={0.97}
-              style={styles.rejectBtn}
+            <Button
+              title="거절하기"
+              variant="secondary"
+              flex={1}
               disabled={isWorking}
               onPress={handleReject}
-            >
-              <Text style={styles.rejectText}>거절하기</Text>
-            </PressScale>
-
-            <PressScale
-              scaleTo={0.97}
-              style={styles.acceptBtn}
-              disabled={isWorking}
+            />
+            <Button
+              title="수락하고 채팅하기"
+              flex={2}
+              loading={isWorking}
               onPress={handleAccept}
-            >
-              {isWorking ? (
-                <ActivityIndicator color={Palette.white} />
-              ) : (
-                <Text style={styles.acceptText}>수락하고 채팅하기</Text>
-              )}
-            </PressScale>
+            />
           </View>
         ) : (
           <View style={styles.noticeBox}>
@@ -339,7 +326,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyText: { ...Typo.body, color: Palette.gray500 },
 
-  scrollContent: { paddingBottom: 140 },
+  scrollContent: { paddingTop: Spacing.md, paddingBottom: 140 },
 
   inbox: {
     flexDirection: "row",
@@ -358,10 +345,11 @@ const styles = StyleSheet.create({
   },
   inboxTime: { ...Typo.caption, fontSize: 12 },
 
+  // 팀 요약 / 소개 / 팀원을 각자 흰 카드 한 장에 담는다 (게시글 상세와 같은 문법)
   header: {
+    ...CardSurface,
     alignItems: "center",
     padding: Spacing.xl,
-    backgroundColor: Palette.white,
   },
   tile: {
     width: 64,
@@ -397,10 +385,10 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    padding: Spacing.screen,
-    backgroundColor: Palette.white,
+    ...CardSurface,
+    padding: Spacing.cardPadding,
   },
-  sectionTitle: { ...Typo.section, marginBottom: Spacing.md },
+  sectionTitle: { ...Typo.cardTitle, marginBottom: Spacing.md },
   sectionDesc: { ...Typo.caption, marginTop: -Spacing.sm, marginBottom: Spacing.lg },
   content: { ...Typo.body, lineHeight: 24 },
 
@@ -441,33 +429,6 @@ const styles = StyleSheet.create({
     ...Shadow.soft,
   },
   footerRow: { flexDirection: "row", gap: Spacing.md },
-  rejectBtn: {
-    flex: 1,
-    paddingVertical: 17,
-    borderRadius: Radius.lg,
-    backgroundColor: Palette.gray100,
-    alignItems: "center",
-  },
-  rejectText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
-  },
-  acceptBtn: {
-    flex: 2,
-    paddingVertical: 17,
-    borderRadius: Radius.lg,
-    backgroundColor: Palette.brand,
-    alignItems: "center",
-  },
-  acceptText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.white,
-  },
-
   noticeBox: {
     flexDirection: "row",
     alignItems: "center",

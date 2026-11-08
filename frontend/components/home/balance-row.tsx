@@ -206,13 +206,18 @@ function Side({
 
 const styles = StyleSheet.create({
   block: {
-    paddingHorizontal: Spacing.screen,
-    paddingBottom: Spacing.lg,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingBottom: Spacing.xl,
     backgroundColor: Palette.white,
   },
+  // 이 카드의 주인공. 카드 제목보다 크게 쓴다.
   question: {
-    ...Typo.subtitle,
-    marginBottom: Spacing.md,
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    lineHeight: 28,
+    color: Palette.gray900,
+    marginBottom: Spacing.lg,
   },
 
   /**
@@ -224,8 +229,8 @@ const styles = StyleSheet.create({
    */
   bar: {
     flexDirection: "row",
-    height: 46,
-    borderRadius: Radius.sm,
+    height: 50,
+    borderRadius: Radius.md,
     overflow: "hidden",
   },
   rest: { flex: 1 },
@@ -245,14 +250,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     letterSpacing: -0.3,
   },
   // 글자가 길면 글자만 줄어든다. 숫자는 끝까지 남아야 한다.
   shrink: { flexShrink: 1 },
   center: { textAlign: "center" },
-  percent: { fontSize: 14, fontWeight: "800", letterSpacing: -0.3 },
+  percent: { fontSize: 15, fontWeight: "800", letterSpacing: -0.3 },
 
   count: {
     ...Typo.caption,

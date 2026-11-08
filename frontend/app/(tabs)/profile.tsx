@@ -5,7 +5,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -14,23 +13,23 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { InputBox } from "@/components/InputBox";
 import { MainButton } from "@/components/MainButton";
 import { Badge } from "@/components/ui/badge";
-import { PressScale } from "@/components/ui/press-scale";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   Divider,
   Screen,
   ScreenHeader,
-  SectionGap,
 } from "@/components/ui/screen";
 import {
   CampusColor,
+  CardSurface,
   Palette,
   Radius,
-  Shadow,
   Spacing,
   Typo,
 } from "@/constants/theme";
@@ -75,7 +74,6 @@ const MENU_ITEMS: {
 
 export default function ProfileTab() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   // 로그인한 내 정보 (전역). Supabase profiles 한 줄이 그대로 들어있다.
   const currentUser = useStore((state) => state.currentUser);
@@ -131,6 +129,7 @@ export default function ProfileTab() {
       // 서버가 돌려준 값으로 전역 상태를 갱신한다 (displayName 도 여기서 다시 계산됨)
       setCurrentUser(result.data);
       setIsEditing(false);
+      toast.show("프로필을 저장했어요");
     } catch (e) {
       Alert.alert("오류", "프로필 저장 중 문제가 발생했습니다.");
     } finally {
@@ -200,7 +199,7 @@ export default function ProfileTab() {
                     return;
                   }
                   router.replace("/login");
-                  Alert.alert("탈퇴가 완료되었어요", "그동안 밋단을 이용해주셔서 고마워요.");
+                  toast.show("탈퇴가 완료됐어요. 그동안 고마웠어요");
                 },
               },
             ]),
@@ -334,13 +333,13 @@ export default function ProfileTab() {
                 onPress={handleSave}
                 isLoading={isSaving}
               />
-              <Pressable
-                style={styles.cancelButton}
+              <Button
+                title="취소"
+                variant="secondary"
                 onPress={cancelEditing}
                 disabled={isSaving}
-              >
-                <Text style={styles.cancelButtonText}>취소</Text>
-              </Pressable>
+                style={styles.cancelButton}
+              />
             </View>
           ) : (
             <View style={styles.summary}>
@@ -361,23 +360,17 @@ export default function ProfileTab() {
                 {!!info.dept && <Text style={styles.major}>{info.dept}</Text>}
               </View>
 
-              <PressScale
-                scaleTo={0.96}
-                style={styles.editButton}
+              <Button
+                title="프로필 수정"
+                icon="create-outline"
+                variant="secondary"
+                size="sm"
                 onPress={startEditing}
-              >
-                <Ionicons
-                  name="create-outline"
-                  size={16}
-                  color={Palette.gray700}
-                />
-                <Text style={styles.editButtonText}>프로필 수정</Text>
-              </PressScale>
+                style={styles.editButton}
+              />
             </View>
           )}
         </View>
-
-        <SectionGap />
 
         {/* ── 회원가입 때 인증한 정보 (수정 불가) ─────────── */}
         <View style={styles.infoSection}>
@@ -419,18 +412,16 @@ export default function ProfileTab() {
           )}
         </View>
 
-        <SectionGap />
-
         {/* ── 메뉴 ─────────────────────────────────────── */}
         <View style={styles.menuSection}>
           {MENU_ITEMS.map((item, index) => (
             <View key={item.label}>
-              {index > 0 && <Divider inset={Spacing.screen + 34} />}
+              {index > 0 && <Divider inset={Spacing.cardPadding + 34} />}
               <Pressable
                 onPress={() =>
                   item.route
                     ? router.push(item.route as any)
-                    : Alert.alert("준비 중이에요", "곧 만나볼 수 있어요.")
+                    : toast.show("곧 열릴 기능이에요", { icon: "time-outline" })
                 }
                 style={({ pressed }) => [
                   styles.menuRow,
@@ -448,8 +439,6 @@ export default function ProfileTab() {
             </View>
           ))}
         </View>
-
-        <SectionGap />
 
         <Pressable
           onPress={handleLogout}
@@ -474,49 +463,37 @@ export default function ProfileTab() {
       </KeyboardAwareScrollView>
 
       {/* ── 아바타 선택 시트 ───────────────────────────── */}
-      <Modal
+      <BottomSheet
         visible={isModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        onClose={() => setModalVisible(false)}
+        title="프로필 캐릭터"
+        description="마음에 드는 캐릭터를 골라주세요."
       >
-        <Pressable
-          style={styles.sheetBackdrop}
-          onPress={() => setModalVisible(false)}
-        />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
-          <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>프로필 캐릭터</Text>
-          <Text style={styles.sheetDesc}>마음에 드는 캐릭터를 골라주세요.</Text>
-
-          <View style={styles.avatarGrid}>
-            {profileImages.map((img, index) => (
-              <Pressable
-                key={index}
-                onPress={() => setTempSelectedIdx(index)}
-                style={[
-                  styles.thumbWrap,
-                  tempSelectedIdx === index && styles.thumbSelected,
-                ]}
-              >
-                <Image source={img} style={styles.thumb} />
-              </Pressable>
-            ))}
-          </View>
-
-          <View style={styles.sheetActions}>
+        <View style={styles.avatarGrid}>
+          {profileImages.map((img, index) => (
             <Pressable
-              style={styles.sheetCancel}
-              onPress={() => setModalVisible(false)}
+              key={index}
+              onPress={() => setTempSelectedIdx(index)}
+              style={[
+                styles.thumbWrap,
+                tempSelectedIdx === index && styles.thumbSelected,
+              ]}
             >
-              <Text style={styles.sheetCancelText}>취소</Text>
+              <Image source={img} style={styles.thumb} />
             </Pressable>
-            <Pressable style={styles.sheetConfirm} onPress={confirmAvatar}>
-              <Text style={styles.sheetConfirmText}>확인</Text>
-            </Pressable>
-          </View>
+          ))}
         </View>
-      </Modal>
+
+        <View style={styles.sheetActions}>
+          <Button
+            title="취소"
+            variant="secondary"
+            flex={1}
+            onPress={() => setModalVisible(false)}
+          />
+          <Button title="확인" flex={2} onPress={confirmAvatar} />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }
@@ -537,13 +514,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // 좌우로 꽉 찬 흰 블록. 블록끼리는 SectionGap 회색 띠로 끊는다.
+  // 묶음마다 흰 카드 한 장. 카드 사이로 회색 바탕이 비쳐 경계가 된다.
   profileSection: {
+    ...CardSurface,
     alignItems: "center",
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingTop: Spacing.xxl,
     paddingBottom: Spacing.xl,
-    backgroundColor: Palette.white,
   },
   avatarWrap: { position: "relative", marginBottom: Spacing.lg },
   avatar: {
@@ -581,22 +558,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   major: { ...Typo.caption, fontSize: 14 },
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: 11,
-    borderRadius: Radius.full,
-    backgroundColor: Palette.gray100,
-  },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
-  },
+  editButton: { marginTop: Spacing.xl },
 
   editForm: { width: "100%" },
   fieldLabel: {
@@ -652,29 +614,18 @@ const styles = StyleSheet.create({
   },
   mbtiTextActive: { color: Palette.brandText, fontWeight: "700" },
 
-  cancelButton: {
-    alignSelf: "center",
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    letterSpacing: -0.3,
-    color: Palette.gray600,
-  },
+  cancelButton: { marginTop: Spacing.sm },
 
   infoSection: {
-    padding: Spacing.screen,
-    backgroundColor: Palette.white,
+    ...CardSurface,
+    padding: Spacing.cardPadding,
   },
   infoHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
   },
-  infoTitle: Typo.section,
+  infoTitle: Typo.cardTitle,
   infoDesc: {
     ...Typo.caption,
     marginTop: 6,
@@ -712,14 +663,14 @@ const styles = StyleSheet.create({
   },
 
   menuSection: {
+    ...CardSurface,
     paddingVertical: Spacing.xs,
-    backgroundColor: Palette.white,
   },
   menuRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
-    paddingHorizontal: Spacing.screen,
+    paddingHorizontal: Spacing.cardPadding,
     paddingVertical: Spacing.lg,
   },
   menuText: {
@@ -731,9 +682,9 @@ const styles = StyleSheet.create({
   },
 
   logoutRow: {
+    ...CardSurface,
     paddingVertical: Spacing.lg,
     alignItems: "center",
-    backgroundColor: Palette.white,
   },
   logoutText: {
     fontSize: 15,
@@ -758,31 +709,12 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 
-  sheetBackdrop: { flex: 1, backgroundColor: "rgba(11,18,32,0.5)" },
-  sheet: {
-    backgroundColor: Palette.white,
-    borderTopLeftRadius: Radius.xxl,
-    borderTopRightRadius: Radius.xxl,
-    paddingHorizontal: Spacing.screen,
-    paddingTop: Spacing.md,
-    ...Shadow.modal,
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: Radius.full,
-    backgroundColor: Palette.gray300,
-    marginBottom: Spacing.xl,
-  },
-  sheetTitle: Typo.title,
-  sheetDesc: { ...Typo.caption, marginTop: 6, marginBottom: Spacing.xl },
-
   avatarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     rowGap: Spacing.md,
+    marginTop: Spacing.xl,
     marginBottom: Spacing.xxl,
   },
   thumbWrap: {
@@ -798,30 +730,4 @@ const styles = StyleSheet.create({
   thumb: { width: "88%", height: "88%", borderRadius: Radius.full },
 
   sheetActions: { flexDirection: "row", gap: Spacing.sm },
-  sheetCancel: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.gray100,
-    alignItems: "center",
-  },
-  sheetCancelText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.gray700,
-  },
-  sheetConfirm: {
-    flex: 2,
-    paddingVertical: 16,
-    borderRadius: Radius.md,
-    backgroundColor: Palette.brand,
-    alignItems: "center",
-  },
-  sheetConfirmText: {
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: Palette.white,
-  },
 });

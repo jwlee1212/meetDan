@@ -41,6 +41,7 @@ import { PlanSheet } from "@/components/ui/plan-sheet";
 import { PressScale } from "@/components/ui/press-scale";
 import { ReportSheet } from "@/components/ui/report-sheet";
 import { Divider, NavHeader } from "@/components/ui/screen";
+import { toast } from "@/components/ui/toast";
 import {
   Hairline,
   Palette,
@@ -631,10 +632,9 @@ export default function ChatRoom() {
         alarms: [{ relativeOffset: -60 * 24 }, { relativeOffset: -60 }],
       });
 
-      Alert.alert(
-        "캘린더에 저장했어요",
-        "약속 하루 전과 한 시간 전에 알림이 울려요.",
-      );
+      toast.show("캘린더에 저장했어요. 하루 전과 한 시간 전에 알려드려요", {
+        icon: "calendar",
+      });
     } catch {
       Alert.alert(
         "저장하지 못했어요",

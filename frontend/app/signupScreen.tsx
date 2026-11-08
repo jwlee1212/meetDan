@@ -22,6 +22,7 @@ import {
   College,
   getCollegesByCampus,
 } from "@/constants/departments";
+import { toast } from "@/components/ui/toast";
 import { Colors, Palette } from "@/constants/theme";
 import { useStore } from "@/store/useStore";
 import { assertClean } from "@/utils/profanity";
@@ -223,7 +224,7 @@ export default function SignupScreen() {
       const result = await API.verifyEmailCode(email.trim(), code.trim());
       if (result.code === 200) {
         setIsEmailVerified(true);
-        Alert.alert("인증 완료", "이메일 인증이 완료되었습니다.");
+        toast.show("이메일 인증이 완료됐어요");
       } else {
         Alert.alert("인증 실패", result.message ?? "인증번호를 확인해주세요.");
       }

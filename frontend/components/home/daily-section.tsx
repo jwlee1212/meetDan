@@ -23,7 +23,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { BalanceChoice, BalanceGame } from "@/api/client";
 import { BalanceRow } from "@/components/home/balance-row";
 import { FortuneLine } from "@/components/home/fortune-line";
-import { Divider, SectionHeader } from "@/components/ui/screen";
+import { Card, CardHeader, Divider } from "@/components/ui/screen";
 import { Palette, Spacing, Typo } from "@/constants/theme";
 import type { DailyFortune } from "@/utils/fortune";
 
@@ -51,23 +51,26 @@ export function DailySection({
 
   if (collapsible && !expanded) {
     return (
-      <Pressable
-        onPress={onToggle}
-        style={({ pressed }) => [
-          styles.collapsed,
-          pressed && { backgroundColor: Palette.gray100 },
-        ]}
-      >
-        <Text style={styles.collapsedText}>오늘의 질문 보기</Text>
-        <Ionicons name="chevron-down" size={16} color={Palette.gray400} />
-      </Pressable>
+      <Card padded={false}>
+        <Pressable
+          onPress={onToggle}
+          style={({ pressed }) => [
+            styles.collapsed,
+            pressed && { backgroundColor: Palette.gray100 },
+          ]}
+        >
+          <Text style={styles.collapsedText}>오늘의 질문 보기</Text>
+          <Ionicons name="chevron-down" size={16} color={Palette.gray400} />
+        </Pressable>
+      </Card>
     );
   }
 
   return (
-    <View>
-      <SectionHeader
+    <Card padded={false}>
+      <CardHeader
         title="오늘의 질문"
+        style={styles.header}
         // 접을 수 있을 때만 접기 버튼을 준다. 팀 글이 몇 개 없는데 접게
         // 두면 홈이 통째로 비어버린다.
         actionLabel={collapsible ? "접기" : undefined}
@@ -75,22 +78,27 @@ export function DailySection({
       />
 
       {!!balance && <BalanceRow game={balance} onVote={onVote} />}
-      {!!balance && !!fortune && <Divider inset={Spacing.screen} />}
+      {!!balance && !!fortune && (
+        <View style={styles.dividerWrap}>
+          <Divider />
+        </View>
+      )}
       {!!fortune && <FortuneLine fortune={fortune} />}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  header: { paddingBottom: Spacing.md },
+  dividerWrap: { paddingHorizontal: Spacing.cardPadding },
   collapsed: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: Spacing.screen,
-    paddingVertical: Spacing.md,
-    backgroundColor: Palette.white,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingVertical: Spacing.lg,
   },
   collapsedText: {
-    ...Typo.caption,
+    ...Typo.body,
     flex: 1,
     fontWeight: "600",
     color: Palette.gray700,

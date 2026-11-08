@@ -24,11 +24,12 @@ import { Chip } from "@/components/ui/chip";
 import { EmptyHint, EmptyState } from "@/components/ui/empty-state";
 import { PressScale } from "@/components/ui/press-scale";
 import {
-  Divider,
+  CardHeader,
+  CardListBottom,
+  CardListItem,
+  CardListTop,
   Screen,
   ScreenHeader,
-  SectionGap,
-  SectionHeader,
 } from "@/components/ui/screen";
 import {
   GenderColor,
@@ -151,7 +152,8 @@ export default function HomeTab() {
   };
 
   const visible = useMemo(
-    () => (campus === "전체" ? posts : posts.filter((t) => t.campus === campus)),
+    () =>
+      campus === "전체" ? posts : posts.filter((t) => t.campus === campus),
     [posts, campus],
   );
 
@@ -215,49 +217,52 @@ export default function HomeTab() {
     const full = team.currentCount >= team.count;
 
     return (
-      <FeedRow
-        icon={gender.icon}
-        tile={gender}
-        tileCaption={`${team.currentCount}/${team.count}`}
-        title={team.title}
-        // 당근이 "동네 · 시간"을 한 줄에 몰아넣는 자리.
-        // 캠퍼스·학과·평균나이·올라온 시각을 한 줄로 붙인다.
-        meta={[
-          `${team.campus} · ${team.dept}`,
-          team.age != null ? `평균 ${team.age}세` : null,
-          team.timestamp,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-        // 소개 미리보기. 목록에서 팀 성격이 드러나야 들어가 볼 마음이 든다.
-        excerpt={team.content?.trim() || undefined}
-        onPress={() => router.push(`/post/${team.id}` as any)}
-      >
-        {/*
+      <CardListItem>
+        <FeedRow
+          icon={gender.icon}
+          tile={gender}
+          tileCaption={`${team.currentCount}/${team.count}`}
+          title={team.title}
+          // 당근이 "동네 · 시간"을 한 줄에 몰아넣는 자리.
+          // 캠퍼스·학과·평균나이·올라온 시각을 한 줄로 붙인다.
+          meta={[
+            `${team.campus} · ${team.dept}`,
+            team.age != null ? `평균 ${team.age}세` : null,
+            team.timestamp,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+          // 소개 미리보기. 목록에서 팀 성격이 드러나야 들어가 볼 마음이 든다.
+          excerpt={team.content?.trim() || undefined}
+          onPress={() => router.push(`/post/${team.id}` as any)}
+        >
+          {/*
           뱃지는 하나만 남긴다. 예전에는 여기에 자리 수 뱃지와 태그 알약
           두 개가 함께 붙었는데, 알약이 세 개씩 달린 줄이 화면을 채우면
           정작 중요한 "들어갈 자리가 있나"가 묻힌다.
           태그는 상세 화면에서 본다 — 목록에서 팀을 고르는 기준이 아니다.
         */}
-        {full ? (
-          <Badge label="모집 완료" tone="success" />
-        ) : (
-          <Badge label={`${team.count - team.currentCount}자리 남음`} />
-        )}
-      </FeedRow>
+          {full ? (
+            <Badge label="모집 완료" tone="success" />
+          ) : (
+            <Badge label={`${team.count - team.currentCount}자리 남음`} />
+          )}
+        </FeedRow>
+      </CardListItem>
     );
   };
 
   return (
-    <Screen>
+    // 회색 바탕 위에 카드를 쌓는다. 운세·밸런스·팀 목록이 각자 한 장씩이라
+    // 묶음의 경계가 명도 차이로 바로 읽힌다.
+    <Screen tone="grouped">
       <ScreenHeader
         title={
           <View style={styles.brand}>
-            <MeetDanLogo size={30} showText={false} />
+            <MeetDanLogo size={32} showText={false} />
             <Text style={styles.brandName}>밋단</Text>
           </View>
         }
-        subtitle="단국대 과팅, 팀으로 만나요"
         right={
           <Pressable
             hitSlop={8}
@@ -294,7 +299,6 @@ export default function HomeTab() {
               tintColor={Palette.brand}
             />
           }
-          ItemSeparatorComponent={() => <Divider inset={Spacing.screen} />}
           ListHeaderComponent={
             <View>
               {/* 할 일 한 줄. 읽을거리(오늘의 질문)와 같은 상자에 담지 않는다 —
@@ -317,52 +321,55 @@ export default function HomeTab() {
                 onToggle={() => setDailyExpanded((prev) => !prev)}
               />
 
-              {/* 회색 띠 한 줄이 "여기서부터는 진짜 팀 글"이라고 말한다.
-                  이게 없으면 위의 읽을거리들이 게시글인 척 섞여 보인다. */}
-              <SectionGap />
+              {/* 팀 목록은 따로 한 장의 카드다. 위의 읽을거리 카드들과 떨어져
+                  있어서 "여기서부터는 진짜 팀 글"이 바로 읽힌다.
+                  카드 위 뚜껑 — 줄들(CardListItem)과 아래 뚜껑이 이어 붙는다. */}
+              <CardListTop>
+                {/* 0은 굳이 적지 않는다. 아래 빈 화면 안내가 이미 그 말을 한다. */}
+                <CardHeader
+                  title="지금 열린 팀"
+                  count={visible.length > 0 ? visible.length : undefined}
+                />
 
-              {/* 0은 굳이 적지 않는다. 아래 빈 화면 안내가 이미 그 말을 한다. */}
-              <SectionHeader
-                title="지금 열린 팀"
-                count={visible.length > 0 ? visible.length : undefined}
-              />
-
-              {/* 필터는 스크롤을 따라 올라간다. 목록이 주인공이라 위쪽을
-                  고정 요소로 채우지 않는다. */}
-              <View style={styles.filterRow}>
-                {CAMPUS_FILTERS.map((c) => (
-                  <Chip
-                    key={c}
-                    label={c}
-                    selected={campus === c}
-                    onPress={() => setCampus(c)}
-                  />
-                ))}
-              </View>
-              <Divider />
+                {/* 필터는 스크롤을 따라 올라간다. 목록이 주인공이라 위쪽을
+                    고정 요소로 채우지 않는다. */}
+                <View style={styles.filterRow}>
+                  {CAMPUS_FILTERS.map((c) => (
+                    <Chip
+                      key={c}
+                      label={c}
+                      selected={campus === c}
+                      onPress={() => setCampus(c)}
+                    />
+                  ))}
+                </View>
+              </CardListTop>
             </View>
           }
+          ListFooterComponent={<CardListBottom />}
           ListEmptyComponent={
-            <EmptyState
-              icon="sparkles-outline"
-              title="아직 열린 과팅이 없어요"
-              description={
-                campus === "전체"
-                  ? "첫 번째 팀을 만들어 상대를 기다려보세요."
-                  : `${campus} 캠퍼스에 올라온 팀이 없어요.`
-              }
-              actionLabel="팀 만들기"
-              onAction={() => router.push("/write")}
-            >
-              <EmptyHint
-                icon="people-outline"
-                text="팀은 2~4명까지 모을 수 있어요"
-              />
-              <EmptyHint
-                icon="ticket-outline"
-                text="초대 코드로 친구를 부를 수 있어요"
-              />
-            </EmptyState>
+            <CardListItem>
+              <EmptyState
+                icon="sparkles-outline"
+                title="아직 열린 과팅이 없어요"
+                description={
+                  campus === "전체"
+                    ? "첫 번째 팀을 만들어 상대를 기다려보세요."
+                    : `${campus} 캠퍼스에 올라온 팀이 없어요.`
+                }
+                actionLabel="팀 만들기"
+                onAction={() => router.push("/write")}
+              >
+                <EmptyHint
+                  icon="people-outline"
+                  text="팀은 2~4명까지 모을 수 있어요"
+                />
+                <EmptyHint
+                  icon="ticket-outline"
+                  text="초대 코드로 친구를 부를 수 있어요"
+                />
+              </EmptyState>
+            </CardListItem>
           }
         />
       )}
@@ -407,8 +414,9 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: "row",
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.screen,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
   },
 
   listContent: { paddingBottom: 108 },
