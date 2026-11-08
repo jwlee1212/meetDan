@@ -1,0 +1,5 @@
+{
+  "name": "meetdan-project",
+  "private": true,
+  "description": "frontend(Expo)와 backend(Supabase)는 각자 독립된 npm 프로젝트입니다. npm workspaces로 묶으면 Metro가 node_modules hoisting과 충돌하므로 사용하지 않습니다. 각 폴더에서 따로 npm install 하세요."
+}
