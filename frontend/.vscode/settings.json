@@ -1,0 +1,30 @@
+{
+  /* 1. 기본 포맷터 설정 (Prettier 강제) */
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true, 
+
+  /* 2. 윈도우-맥 충돌 방지 핵심 설정 (무조건 LF로 통일) */
+  "files.eol": "\n", 
+  "files.encoding": "utf8",
+
+  /* 3. 들여쓰기 설정 (스페이스 2칸) */
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+
+  /* 4. 파일 정리 설정 (저장 시 불필요한 공백 제거) */
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  /* 5. React Native 관련 파일 연결 */
+  "files.associations": {
+    "*.js": "javascriptreact",
+    "*.ts": "typescriptreact"
+  },
+  
+  /* 6. 검색에서 제외할 폴더 (속도 향상) */
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.expo": true
+  }
+}

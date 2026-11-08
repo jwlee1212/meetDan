@@ -1,0 +1,39 @@
+# 1. 기본 설정: 텍스트 파일이라고 판단되면 알아서 OS에 맞춰 변환
+* text=auto
+
+# 2. 코드 파일은 무조건 LF로 고정 (윈도우 사용자도 강제로 LF 사용)
+*.java text eol=lf
+*.class binary
+*.jar binary
+
+# 웹 프론트엔드 관련 (JS, TS, React)
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# 설정 및 문서 파일
+*.xml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.gradle text eol=lf
+.gitignore text eol=lf
+
+# 3. 윈도우용 실행 파일은 CRLF 유지 (깨짐 방지)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 4. 이미지 등 바이너리 파일은 건드리지 않음
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# 5. iOS 설정 파일 (Mac 전용이므로 LF 고정)
+Podfile text eol=lf
+Podfile.lock text eol=lf

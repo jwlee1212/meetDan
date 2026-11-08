@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode", // Prettier (필수)
+    "dsznajder.es7-react-js-snippets", // React Snippets (필수)
+    "pkief.material-icon-theme" // 아이콘 테마 (선택)
+  ]
+}
