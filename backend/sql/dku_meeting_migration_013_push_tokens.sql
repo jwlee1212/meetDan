@@ -18,6 +18,8 @@
 --    아래 4번의 준비물 세 가지가 있어야 한다.
 --      (1) pg_net 확장
 --      (2) Vault 에 project_url / service_role_key
+--          ⚠ 마이그레이션 019 에서 service_role_key 대신 push_hook_secret 으로 바뀌었다.
+--            설정 방법은 019 머리말을 따른다.
 --      (3) send-push Edge Function 배포
 --    셋 중 하나라도 없으면 트리거는 조용히 아무 일도 하지 않는다(경고만
 --    남긴다). 알림 저장과 매칭 수락은 그대로 성공한다 — 푸시를 못 보낸 것이

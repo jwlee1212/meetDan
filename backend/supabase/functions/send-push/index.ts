@@ -7,7 +7,7 @@
 // 부른다. 그래서 요청 본문에는 알림 id 하나만 들어 있다.
 //
 // 흐름
-//   1. service_role 키로 온 요청인지 확인한다 (사람이 부를 수 없어야 한다)
+//   1. DB 트리거가 보낸 요청인지 확인한다 (x-push-secret, 마이그레이션 019)
 //   2. 알림 한 줄과 그 사람의 기기 토큰을 읽는다
 //   3. Expo Push API 로 보낸다 (한 번에 100개씩)
 //   4. "이 기기는 이제 없다"는 응답이 온 토큰은 지운다
@@ -34,23 +34,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
 /**
- * 서버 열쇠.
- *
- * 이 프로젝트처럼 새 API 키 형식(sb_publishable_… / sb_secret_…)을 쓰는
- * 프로젝트와 예전 JWT 형식(service_role)을 쓰는 프로젝트가 섞여 있어서
- * 둘 다 받는다. 먼저 잡히는 값으로 DB에 붙고, 들어온 요청의 Authorization
- * 도 이 목록과 대조한다.
- *
- * ⚠️ Vault 의 service_role_key 에는 여기 있는 것과 '같은 값'을 넣어야 한다.
- *    Dashboard → Settings → API Keys 에서 secret(또는 service_role) 을
- *    그대로 복사하면 된다. 다른 값을 넣으면 아래 403 으로 막힌다.
+ * DB 에 붙는 열쇠. Supabase 가 함수에 자동으로 넣어 주는 값을 쓴다.
+ * (SUPABASE_ 로 시작하는 이름은 예약돼 있어 사용자가 설정할 수 없다)
  */
-const serviceKeys = [
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
-  Deno.env.get("SUPABASE_SECRET_KEY"),
-].filter((key): key is string => !!key);
+const serviceRoleKey =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+  Deno.env.get("SUPABASE_SECRET_KEY") ??
+  "";
 
-const serviceRoleKey = serviceKeys[0] ?? "";
+/**
+ * 이 함수를 부를 자격 — DB 트리거와 나눠 가진 푸시 전용 비밀값.
+ *
+ * 함수 쪽  supabase secrets set PUSH_HOOK_SECRET=...
+ * DB 쪽    Vault 'push_hook_secret' (마이그레이션 019)
+ * 두 값이 같아야 한다. 다르면 아래 403 으로 막힌다.
+ *
+ * 예전에는 API 서버 열쇠를 대조했는데, 트리거가 보내는 새 형식 키(sb_secret_…)와
+ * 함수에 자동으로 들어오는 예전 형식 키가 달라 늘 403 이었다.
+ */
+const pushHookSecret = Deno.env.get("PUSH_HOOK_SECRET") ?? "";
+
+/** 길이가 같을 때 앞에서부터 비교를 끊지 않는다 (응답 시간으로 값을 추측하지 못하게) */
+function safeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const x = enc.encode(a);
+  const y = enc.encode(b);
+  if (x.length !== y.length) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
@@ -146,13 +159,16 @@ Deno.serve(async (req) => {
   //
   //    게이트웨이의 JWT 검사에 기대지 않고 여기서 직접 본다. 그쪽은 켜 두어도
   //    '로그인한 사용자 아무나' 를 통과시키므로, 남의 알림 id 로 이 함수를
-  //    두들겨 같은 푸시를 몇 번이고 보내게 할 수 있다. 서버 열쇠를 가진
+  //    두들겨 같은 푸시를 몇 번이고 보내게 할 수 있다. 푸시 전용 비밀값을 가진
   //    호출(= DB 트리거)만 지나가야 한다.
   //    (그래서 config.toml 에서 이 함수의 verify_jwt 는 꺼 두었다 —
   //     검사가 두 벌이면 새 키 형식에서 게이트웨이가 먼저 막을 수 있다)
-  const auth = req.headers.get("Authorization") ?? "";
-  const authorized = serviceKeys.some((key) => auth === `Bearer ${key}`);
-  if (!authorized) {
+  if (!pushHookSecret) {
+    console.error("[send-push] PUSH_HOOK_SECRET 이 설정되지 않았어요");
+    return json({ error: "not configured" }, 500);
+  }
+  const provided = req.headers.get("x-push-secret") ?? "";
+  if (!safeEqual(provided, pushHookSecret)) {
     return json({ error: "forbidden" }, 403);
   }
 
