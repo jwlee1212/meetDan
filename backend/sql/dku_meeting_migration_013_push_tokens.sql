@@ -1,22 +1,6 @@
 -- ============================================================
 -- 마이그레이션 013 — 푸시 알림 (기기 토큰 + 발송 트리거)
 --
--- 🅿️ 보류 중 (2026-08-23). 아직 실행하지 않았다.
---
---    코드는 다 있는데 막힌 곳은 코드가 아니다 — 발송 자격증명과 빌드다.
---      · Android : Firebase 프로젝트 + FCM V1 서비스 계정 키
---      · iOS     : Apple Developer 계정 (연 $99) → APNs 키
---      · 공통    : 개발 빌드. Expo Go 는 SDK 53 부터 원격 푸시를 못 받는다.
---    셋 다 정식 출시 준비와 함께 해야 하는 일이라, 그때까지 미뤄 둔다.
---
---    이미 끝난 준비물 하나: eas init (app.json 의 extra.eas.projectId).
---
---    보류 중이어도 앱은 멀쩡하다. 토큰을 못 받으면 lib/push.ts 가 조용히
---    null 을 돌려주고, 등록할 기기가 없으니 이 파일이 없어도 아무 데서도
---    오류가 나지 않는다. 알림 센터(012)는 그것과 무관하게 돌아간다.
---
---    다시 시작할 때: 아래 4번의 준비물 세 가지부터 보면 된다.
---
 -- 012 는 '앱 안의 알림 센터'까지였다. 알림은 쌓이지만, 앱을 꺼 둔 사람은
 -- 다음에 앱을 열 때까지 아무것도 모른다. 매칭 신청은 상대가 기다리는
 -- 일이라 그 시차가 그대로 응답률이 된다.
@@ -233,8 +217,18 @@ create extension if not exists pg_net;
 --                          send-push 가 자기 환경변수와 대조하므로 반드시
 --                          같은 값이어야 한다 — 다르면 403 으로 막힌다.
 --
--- select vault.create_secret('https://<프로젝트>.supabase.co', 'project_url');
--- select vault.create_secret('<service_role_key>', 'service_role_key');
+--     vault.create_secret(값, 이름) — 첫 번째가 '값', 두 번째가 '이름'이다.
+--     이름은 위 트리거가 찾는 그대로('project_url', 'service_role_key') 써야 하고,
+--     값에는 < > 괄호를 넣지 않는다. 주석을 풀지 말고 SQL Editor 에 복사해서
+--     값만 채워 실행한다 (이 파일에 실제 키를 적어 커밋하지 않는다).
+--
+-- select vault.create_secret('https://<프로젝트 ref>.supabase.co', 'project_url');
+-- select vault.create_secret('<sb_secret_ 로 시작하는 비밀 키>',    'service_role_key');
+--
+--     이미 잘못 넣었다면 이름이 틀린 행부터 지우고 다시 넣는다.
+--       select id, name from vault.secrets;   -- 이름이 URL·키 모양인 행이 잘못 넣은 것
+--       delete from vault.secrets where name not in ('project_url', 'service_role_key')
+--         and (name like 'https://%' or name like 'sb_secret_%' or name like '<%');
 --
 --     다시 넣을 때(키를 새로 발급했다면)는 update 다. create 를 또 하면
 --     같은 이름이 두 개가 되고 위 트리거의 select 가 둘 중 하나를 집는다.
@@ -274,15 +268,9 @@ create extension if not exists pg_net;
 -- order by id desc
 -- limit 10;
 --
--- -- (4) 나에게 시험 알림 한 줄 넣어보기 — 푸시가 오는지 보는 가장 빠른 방법.
--- --     SQL Editor 는 postgres 로 붙어 RLS 를 지나가므로 그냥 넣으면 되고,
--- --     insert 가 곧 사건이라 위 3번 트리거도 그대로 돈다.
--- --     (broadcast_notice() 는 여기서 부를 수 없다 — auth.uid() 가 null 이라
--- --      is_admin() 이 항상 false 다. 자세한 것은 마이그레이션 012 참고)
--- insert into notifications (user_id, kind, title, body)
--- select id, 'NOTICE', '시험 알림', '푸시가 도착하면 성공입니다.'
--- from profiles
--- where login_id = '<내아이디>';
+-- -- (4) 나에게 시험 알림 한 줄 넣어보기 (운영자 계정으로)
+-- --     푸시가 오는지 보는 가장 빠른 방법이다.
+-- -- select broadcast_notice('시험 알림', '푸시가 도착하면 성공입니다.');
 --
 -- -- (5) 오래 안 쓰는 기기 정리 — 필요해지면 pg_cron 으로 돌린다.
 -- --     (죽은 토큰은 send-push 가 발송 실패 응답을 보고 스스로 지운다)
