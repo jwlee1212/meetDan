@@ -240,7 +240,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
-          <Stack.Screen name="+not-found" />
         </Stack>
 
         {/* 2. 커스텀 스플래쉬 화면

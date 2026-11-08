@@ -23,7 +23,43 @@ import type {
   Team,
   TeamMember,
 } from "@/store/useStore";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { Database, TablesInsert } from "@/lib/database.types";
+import {
+  FunctionsFetchError,
+  FunctionsHttpError,
+  FunctionsRelayError,
+  type PostgrestError,
+} from "@supabase/supabase-js";
+
+// ------------------------------------------------------------
+// 생성된 타입(database.types.ts)이 DB 쪽 사정을 모르는 두 군데를 보정한다.
+// 생성 파일은 다시 만들 때마다 덮어써지므로 여기서 감싼다.
+// ------------------------------------------------------------
+
+/**
+ * teams insert.
+ * dept / gender 는 teams_set_owner_facts 트리거(마이그레이션 005·006)가
+ * 팀장 프로필에서 채운다. 클라이언트가 보내도 덮어쓰므로 보내지 않는다.
+ * 생성기는 트리거를 모르고 not null 컬럼이라 필수로 잡는다.
+ */
+type TeamInsert = Omit<TablesInsert<"teams">, "dept" | "gender">;
+
+/**
+ * set_match_plan 인자.
+ * 약속 취소는 날짜·시각·장소를 null 로 보낸다. Postgres 함수 인자에는
+ * not null 표시가 없어서 생성기가 전부 non-null 로 잡는다.
+ */
+type SetMatchPlanArgs = {
+  [K in keyof Database["public"]["Functions"]["set_match_plan"]["Args"]]:
+    | Database["public"]["Functions"]["set_match_plan"]["Args"][K]
+    | (K extends "p_match_id" ? never : null);
+};
+
+const setMatchPlanRpc = (args: SetMatchPlanArgs) =>
+  supabase.rpc(
+    "set_match_plan",
+    args as Database["public"]["Functions"]["set_match_plan"]["Args"],
+  );
 
 export type ApiResponse<T = any> = {
   code: number;
@@ -305,6 +341,50 @@ const readFunctionResult = <T extends Record<string, any>>(
   }
   if (!data) return { ok: false, message: null };
   return { ok: true, data };
+};
+
+/**
+ * Edge Function 호출 실패를 '어디서 왜' 실패했는지 알 수 있게 풀어 쓴다.
+ *
+ * supabase-js 는 2xx 가 아닌 응답을 FunctionsHttpError 로 바꾸면서 본문을
+ * error.context(Response) 안에 넣어 둔다. readFunctionResult 는 그걸 보지
+ * 않으므로, 원인을 알아야 하는 호출에서 이걸 함께 쓴다.
+ *
+ *   status 401  게이트웨이/함수의 인증 실패
+ *   status 404  함수가 배포되지 않았다
+ *   status 500  함수 안에서 실패 — body.code 에 DB 오류 코드가 실린다
+ *   status null 네트워크 단계에서 실패 (relay / fetch)
+ */
+const readFunctionFailure = async (
+  error: unknown,
+): Promise<{ status: number | null; message: string | null; code: string | null }> => {
+  if (error instanceof FunctionsHttpError) {
+    const res = error.context as Response;
+    let body: unknown = null;
+    try {
+      body = await res.clone().json();
+    } catch {
+      body = await res.text().catch(() => null);
+    }
+    const obj = (body && typeof body === "object" ? body : {}) as {
+      error?: unknown;
+      code?: unknown;
+      msg?: unknown;
+      message?: unknown;
+    };
+    const message =
+      [obj.error, obj.msg, obj.message].find((v) => typeof v === "string") ??
+      (typeof body === "string" ? body : null);
+    return {
+      status: res.status,
+      message: (message as string | null) ?? null,
+      code: typeof obj.code === "string" ? obj.code : null,
+    };
+  }
+  if (error instanceof FunctionsRelayError || error instanceof FunctionsFetchError) {
+    return { status: null, message: error.message, code: error.name };
+  }
+  return { status: null, message: null, code: null };
 };
 
 // ============================================================
@@ -632,7 +712,7 @@ const toMatch = (
 
 /**
  * 서버가 올리는 채팅 쪽 문구. send_chat_message(마이그레이션 011) 와
- * post_system_message / post_exit_proposal / resolve_exit_proposal 이 던진다.
+ * post_exit_proposal / resolve_exit_proposal 이 던진다.
  */
 const CHAT_ERROR_MESSAGES = [
   "이 채팅방의 참여자가 아닙니다",
@@ -1198,16 +1278,19 @@ export const API = {
     const userId = await requireUserId();
     if (!userId) return fail(401, "로그인이 필요합니다.");
 
+    const row: TeamInsert = {
+      owner_id: userId,
+      title: payload.title.trim(),
+      content: payload.content.trim(),
+      campus: payload.campus,
+      capacity: payload.count,
+      tags: payload.tags,
+    };
+
     const { data, error } = await supabase
       .from("teams")
-      .insert({
-        owner_id: userId,
-        title: payload.title.trim(),
-        content: payload.content.trim(),
-        campus: payload.campus,
-        capacity: payload.count,
-        tags: payload.tags,
-      })
+      // dept / gender 는 트리거가 채운다 (TeamInsert 참고)
+      .insert(row as TablesInsert<"teams">)
       .select("id")
       .single<{ id: string }>();
 
@@ -1488,7 +1571,7 @@ export const API = {
     matchId: string,
     plan: ConfirmedPlan,
   ): Promise<ApiResponse> => {
-    const { error } = await supabase.rpc("set_match_plan", {
+    const { error } = await setMatchPlanRpc({
       p_match_id: matchId,
       p_date: plan.date,
       p_time: plan.time,
@@ -1502,7 +1585,7 @@ export const API = {
 
   /** 약속 취소. 날짜·시각은 함께 비어야 한다(스키마 제약). */
   clearMatchPlan: async (matchId: string): Promise<ApiResponse> => {
-    const { error } = await supabase.rpc("set_match_plan", {
+    const { error } = await setMatchPlanRpc({
       p_match_id: matchId,
       p_date: null,
       p_time: null,
@@ -1711,25 +1794,6 @@ export const API = {
       ...toParticipants(mineIsFrom ? data.from_team : data.to_team, "MINE"),
       ...toParticipants(mineIsFrom ? data.to_team : data.from_team, "PARTNER"),
     ]);
-  },
-
-  /**
-   * 시스템 메시지. 약속 확정·차단 안내처럼 '누가 보낸 게 아닌' 줄이다.
-   *
-   * 화면 state 에만 쌓으면 나에게만 보인다. 양쪽에 남아야 하는 안내는
-   * 반드시 이걸 거쳐야 한다.
-   */
-  postSystemMessage: async (
-    roomId: string,
-    text: string,
-  ): Promise<ApiResponse> => {
-    const { error } = await supabase.rpc("post_system_message", {
-      p_room_id: roomId,
-      p_text: text,
-    });
-
-    if (error) return fail(400, describeChatError(error));
-    return ok();
   },
 
   /** 채팅 종료 제안 카드를 띄운다. 양쪽 중 누구나 보낼 수 있다. */
@@ -2144,5 +2208,44 @@ export const API = {
       console.error("[로그아웃]", error);
     }
     return ok();
+  },
+
+  /**
+   * 회원 탈퇴.
+   *
+   * delete-account 가 개인정보를 지우고(anonymize_account, 마이그레이션 018)
+   * auth 계정을 정지한 뒤 모든 기기의 세션을 끊는다. 푸시 토큰도 서버에서
+   * 이미 지웠으므로 여기서는 기기에 남은 것만 치운다.
+   *
+   * 성공하면 _layout.tsx 의 onAuthStateChange 가 전역 유저 정보를 비운다.
+   */
+  deleteAccount: async (): Promise<ApiResponse> => {
+    const { data, error } = await supabase.functions.invoke<{
+      success?: boolean;
+      error?: string;
+    }>("delete-account", { method: "POST" });
+
+    if (error) {
+      const failure = await readFunctionFailure(error);
+      console.error("[탈퇴] delete-account 실패", failure);
+      const base = failure.message ?? "탈퇴하지 못했어요. 잠시 후 다시 시도해주세요.";
+      // 개발 중에는 원인을 바로 볼 수 있게 상태·코드를 덧붙인다
+      const detail = __DEV__
+        ? `\n\n(status ${failure.status ?? "-"}, code ${failure.code ?? "-"})`
+        : "";
+      return fail(failure.status ?? 500, base + detail);
+    }
+
+    const result = readFunctionResult(data, error);
+    if (!result.ok) {
+      return fail(500, result.message ?? "탈퇴하지 못했어요. 잠시 후 다시 시도해주세요.");
+    }
+
+    clearRegisteredPushToken();
+    // 서버 세션은 delete-account 가 이미 끊었다. 기기의 세션만 지운다.
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+    if (signOutError) console.error("[탈퇴 후 로그아웃]", signOutError);
+
+    return ok(undefined, "탈퇴가 완료되었어요.");
   },
 };

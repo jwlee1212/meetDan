@@ -83,6 +83,9 @@ async function ensureAndroidChannel() {
 
   await Notifications.setNotificationChannelAsync("default", {
     name: "밋단 알림",
+    // 런타임에는 정상 export 된다. eslint-plugin-import 가 컴파일된 enum
+    // (`export var X = function(X){...}({})`)을 따라가지 못해 생기는 오탐이다.
+    // eslint-disable-next-line import/namespace
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: Palette.brand,

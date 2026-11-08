@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   View,
+  type ScrollViewInstance,
 } from "react-native";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
@@ -66,8 +67,9 @@ export function PlanSheet({
   const [time, setTime] = useState("19:00");
   const [place, setPlace] = useState("");
 
-  const dateScroll = useRef<ScrollView>(null);
-  const timeScroll = useRef<ScrollView>(null);
+  // RN 0.88 부터 ScrollView 는 함수 컴포넌트라 ref 타입은 ScrollViewInstance 다
+  const dateScroll = useRef<ScrollViewInstance>(null);
+  const timeScroll = useRef<ScrollViewInstance>(null);
 
   // 열릴 때마다 이미 잡힌 약속(없으면 기본값)에서 다시 시작한다.
   // effect 로 미루면 지난번에 고른 값이 한 프레임 비쳤다가 바뀐다.

@@ -7,8 +7,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Hairline, Palette } from "@/constants/theme";
 
 /** 탭 아이콘: 선택되면 채워진 아이콘으로 바뀐다. */
-// color 를 string 이 아니라 ColorValue 로 받는다. RN 0.86(SDK 57)부터
-// tabBarIcon 이 넘겨주는 색이 ColorValue(= string | OpaqueColorValue)로 넓어졌다.
+// expo-router 의 Tabs 는 color 를 ColorValue 로 넘긴다. RN 0.88(SDK 58)부터
+// ColorValue 에 null·number(처리된 색 정수)가 포함됐는데, Ionicons 는
+// string | OpaqueColorValue 만 받으므로 그 둘은 걸러서 넘긴다.
+const toIconColor = (color: ColorValue) =>
+  color == null || typeof color === "number" ? undefined : color;
+
 const tabIcon = (name: string) => {
   const TabBarIcon = ({
     color,
@@ -20,7 +24,7 @@ const tabIcon = (name: string) => {
     <Ionicons
       name={(focused ? name : `${name}-outline`) as any}
       size={24}
-      color={color}
+      color={toIconColor(color)}
     />
   );
   TabBarIcon.displayName = `TabBarIcon(${name})`;

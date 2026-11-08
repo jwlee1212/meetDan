@@ -10,6 +10,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
 
+// `supabase gen types typescript --linked > frontend/lib/database.types.ts` 로 만든다.
+// 스키마를 바꾸는 마이그레이션을 적용했으면 다시 생성해야 한다.
+import type { Database } from "./database.types";
+
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -22,7 +26,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     persistSession: true,

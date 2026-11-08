@@ -441,3 +441,13 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/send-push/deno.json"
 entrypoint = "./functions/send-push/index.ts"
+
+# 회원 탈퇴. 게이트웨이 JWT 검사는 끈다.
+# 이 프로젝트는 새 API 키(sb_publishable_…)와 새 JWT 서명 키를 쓰는데, 게이트웨이의
+# 예전 방식 검사는 사용자 토큰을 함수에 닿기 전에 401 로 막을 수 있다.
+# 함수가 Authorization 의 토큰을 Auth 서버(getUser)로 직접 확인하므로 안전하다.
+[functions.delete-account]
+enabled = true
+verify_jwt = false
+import_map = "./functions/delete-account/deno.json"
+entrypoint = "./functions/delete-account/index.ts"

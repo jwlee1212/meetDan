@@ -1,6 +1,8 @@
 // 파일: app/chat/[id].tsx
 import { Ionicons } from "@expo/vector-icons";
-import * as Calendar from "expo-calendar";
+// SDK 58 부터 "expo-calendar" 본체는 객체형 새 API 이고, 예전 함수들
+// (getCalendarsAsync 등)은 부르는 순간 오류를 던진다. 예전 API 는 /legacy 에 남아 있다.
+import * as Calendar from "expo-calendar/legacy";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -549,13 +551,8 @@ export default function ChatRoom() {
     setFetchedMatch((prev) => (prev ? { ...prev, confirmedPlan: next } : prev));
     setPlanSheetOpen(false);
 
-    // 약속 안내는 양쪽에 남아야 한다. 화면 state 에만 쌓으면 나에게만 보인다.
-    if (room) {
-      await API.postSystemMessage(
-        room.id,
-        `${plan ? "약속이 변경되었어요." : "약속이 확정되었어요."}\n${formatPlanSummary(next)}`,
-      );
-    }
+    // 약속 안내(시스템 메시지)는 set_match_plan 이 서버에서 직접 남기고
+    // Realtime 으로 양쪽에 내려온다 (마이그레이션 017).
   };
 
   const handleRemovePlan = async () => {
@@ -572,8 +569,6 @@ export default function ChatRoom() {
       prev ? { ...prev, confirmedPlan: undefined } : prev,
     );
     setPlanSheetOpen(false);
-
-    if (room) await API.postSystemMessage(room.id, "확정된 약속을 취소했어요.");
   };
 
   /** 기기에 쓸 수 있는 캘린더 하나를 고른다. (iOS 기본 캘린더 → 수정 가능한 것 순) */
@@ -1011,7 +1006,7 @@ export default function ChatRoom() {
                 <View style={styles.olderSpinner}>
                   <ActivityIndicator size="small" color={Palette.gray400} />
                 </View>
-              ) : null
+              ) : undefined
             }
             ListEmptyComponent={
               <View style={[styles.centerBox, styles.emptyFlip]}>

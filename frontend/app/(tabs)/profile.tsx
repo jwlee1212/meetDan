@@ -35,7 +35,6 @@ import {
   Typo,
 } from "@/constants/theme";
 import { useStore } from "@/store/useStore";
-import { assertClean } from "@/utils/profanity";
 import { API } from "@/api/client";
 import type { ProfilePatch } from "@/api/client";
 import { profileImages } from "@/constants/avatars";
@@ -122,9 +121,6 @@ export default function ProfileTab() {
       return;
     }
 
-    // 닉네임과 소개는 상대 팀에게 그대로 보이는 값이다
-    if (!assertClean({ 닉네임: nickname, "한 줄 소개": bio })) return;
-
     try {
       setIsSaving(true);
       const result = await API.updateMyProfile({ ...draft, nickname, bio });
@@ -135,7 +131,7 @@ export default function ProfileTab() {
       // 서버가 돌려준 값으로 전역 상태를 갱신한다 (displayName 도 여기서 다시 계산됨)
       setCurrentUser(result.data);
       setIsEditing(false);
-    } catch {
+    } catch (e) {
       Alert.alert("오류", "프로필 저장 중 문제가 발생했습니다.");
     } finally {
       setIsSaving(false);
@@ -166,6 +162,51 @@ export default function ProfileTab() {
         },
       },
     ]);
+  };
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  /**
+   * 회원 탈퇴. 되돌릴 수 없어서 두 번 묻는다.
+   * 무엇이 지워지고 무엇이 남는지는 마이그레이션 018 과 맞춰 적었다.
+   */
+  const handleDeleteAccount = () => {
+    if (isDeleting) return;
+
+    Alert.alert(
+      "정말 탈퇴할까요?",
+      "프로필과 알림이 삭제되고, 참여 중인 팀에서 나가게 돼요. " +
+        "내가 팀장인 팀은 함께 삭제돼요.\n\n" +
+        "매칭이 성사된 팀의 대화는 상대방을 위해 '밋단 회원'으로 남고, " +
+        "같은 학교 메일로는 다시 가입할 수 없어요.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴하기",
+          style: "destructive",
+          onPress: () =>
+            Alert.alert("마지막으로 확인할게요", "탈퇴하면 되돌릴 수 없어요.", [
+              { text: "취소", style: "cancel" },
+              {
+                text: "탈퇴",
+                style: "destructive",
+                onPress: async () => {
+                  setIsDeleting(true);
+                  const result = await API.deleteAccount();
+                  setIsDeleting(false);
+
+                  if (result.code !== 200) {
+                    Alert.alert("탈퇴하지 못했어요", result.message);
+                    return;
+                  }
+                  router.replace("/login");
+                  Alert.alert("탈퇴가 완료되었어요", "그동안 밋단을 이용해주셔서 고마워요.");
+                },
+              },
+            ]),
+        },
+      ],
+    );
   };
 
   // 편집 중에는 미리보기가 바로 보이도록 draft 값을 쓴다
@@ -414,10 +455,21 @@ export default function ProfileTab() {
           onPress={handleLogout}
           style={({ pressed }) => [
             styles.logoutRow,
-            pressed && { backgroundColor: Palette.red },
+            pressed && { backgroundColor: Palette.gray100 },
           ]}
         >
           <Text style={styles.logoutText}>로그아웃</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleDeleteAccount}
+          disabled={isDeleting}
+          hitSlop={8}
+          style={styles.withdrawRow}
+        >
+          <Text style={styles.withdrawText}>
+            {isDeleting ? "탈퇴 처리 중…" : "회원 탈퇴"}
+          </Text>
         </Pressable>
       </KeyboardAwareScrollView>
 
@@ -688,6 +740,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.3,
     color: Palette.gray600,
+  },
+
+  // 로그아웃보다 한 단계 약하게. 실수로 누르기 어렵게 작고 흐린 글씨로 둔다.
+  withdrawRow: {
+    alignSelf: "center",
+    marginTop: 20,
+    marginBottom: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  withdrawText: {
+    fontSize: 13,
+    fontWeight: "500",
+    letterSpacing: -0.2,
+    color: Palette.gray400,
+    textDecorationLine: "underline",
   },
 
   sheetBackdrop: { flex: 1, backgroundColor: "rgba(11,18,32,0.5)" },

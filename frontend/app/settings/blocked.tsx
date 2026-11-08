@@ -173,7 +173,7 @@ export default function BlockedListScreen() {
                 만나지 않아요.
               </Text>
             </View>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <EmptyState

@@ -449,7 +449,7 @@ export default function MyTeamTab() {
                 count={myTeams.length}
                 style={styles.sectionHeader}
               />
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
             <EmptyState
